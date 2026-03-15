@@ -1,8 +1,136 @@
 <!DOCTYPE html>
-<html>
-<head><title>Asphaleia</title></head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asphaleia - Phase 2</title>
+  <link rel="manifest" href="/manifest.json">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, sans-serif; background: #f5f5f5; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .card { background: white; border-radius: 12px; padding: 24px; margin: 16px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    button { background: #0066cc; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+    button:hover { background: #0052a3; }
+    .status { padding: 12px; border-radius: 8px; margin: 8px 0; }
+    .status.ok { background: #d4edda; color: #155724; }
+    .status.pending { background: #fff3cd; color: #856404; }
+    input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin: 8px 0; font-size: 16px; }
+    .hidden { display: none; }
+  </style>
+</head>
 <body>
-  <h1>Asphaleia PWA Prototype</h1>
-  <p>Phase 1: Infrastructure setup complete.</p>
+  <div class="container">
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="card">
+      <h1>🏦 Asphaleia</h1>
+      <p>Student Safety Prototype - Phase 2</p>
+      <input id="email" type="email" placeholder="Email">
+      <input id="password" type="password" placeholder="Password">
+      <button onclick="register()">Register</button>
+      <button onclick="login()">Login</button>
+    </div>
+
+    <!-- Student Dashboard -->
+    <div id="student-dashboard" class="card hidden">
+      <h2>👨‍🎓 Student View</h2>
+      <div id="student-status" class="status pending">Status: Not tracking</div>
+      <button onclick="startTracking()">Start Commute Tracking</button>
+      <div id="location-log"></div>
+    </div>
+
+    <!-- Guardian Dashboard -->
+    <div id="guardian-dashboard" class="card hidden">
+      <h2>👨‍👧 Guardian View</h2>
+      <div id="child-status">Waiting for child data...</div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+    // YOUR FIREBASE CONFIG FROM PHASE 1
+    const firebaseConfig = window.firebaseConfig || {
+      // Paste from Firebase Console > Project Settings > Your apps
+      apiKey: "xxx",
+      authDomain: "xxx",
+      projectId: "xxx"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let userRole = 'student'; // Default, set during register
+
+    // Auth Functions
+    window.register = async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          email, role: userRole, // Switch to 'guardian' for parent accounts
+          created: new Date().toISOString()
+        });
+        alert('Registered! Refresh to see dashboard.');
+      } catch (e) { alert(e.message); }
+    };
+
+    window.login = async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (e) { alert(e.message); }
+    };
+
+    // Role-based Dashboards
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDoc = doc(db, 'users', user.uid);
+        onSnapshot(userDoc, (snap) => {
+          if (snap.exists()) {
+            userRole = snap.data().role;
+            showDashboard(userRole);
+          }
+        });
+      }
+    });
+
+    function showDashboard(role) {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById(role === 'guardian' ? 'guardian-dashboard' : 'student-dashboard').classList.remove('hidden');
+    }
+
+    // Student Tracking (Phase 3 preview)
+    window.startTracking = () => {
+      document.getElementById('student-status').textContent = 'Status: GPS Active';
+      document.getElementById('student-status').className = 'status ok';
+      
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(async (pos) => {
+          await addDoc(collection(db, 'locations'), {
+            uid: auth.currentUser.uid,
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            timestamp: new Date().toISOString()
+          });
+        }, () => {
+          document.getElementById('student-status').textContent = 'Status: GPS Permission Denied';
+        }, { enableHighAccuracy: true });
+      }
+    };
+  </script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
 </body>
 </html>
