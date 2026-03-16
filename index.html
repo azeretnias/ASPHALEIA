@@ -290,22 +290,15 @@ onAuthStateChanged(auth, async (user) => {
       }
     }
      function watchGuardianLocations() {
-  // Initialize map once
   if (!map) {
     map = L.map('map').setView([25.2854, 51.5310], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-    
-    // School geofence (green circle)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     L.circle([GEOFENCES.school.lat, GEOFENCES.school.lng], {
       color: '#00ff00', fillColor: '#00ff00', fillOpacity: 0.2, radius: 50
-    }).addTo(map).bindPopup('🏫 School (50m)');
-    
-    // Home geofence (red circle)  
+    }).addTo(map).bindPopup('🏫 School');
     L.circle([GEOFENCES.home.lat, GEOFENCES.home.lng], {
       color: '#ff4444', fillColor: '#ff4444', fillOpacity: 0.2, radius: 50
-    }).addTo(map).bindPopup('🏠 Home (50m)');
+    }).addTo(map).bindPopup('🏠 Home');
   }
 
   const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
@@ -318,26 +311,33 @@ onAuthStateChanged(auth, async (user) => {
       return;
     }
     
+    const childUid = childUids[0];
+    console.log('🔍 QUERY UID:', childUid);  // DEBUG
+    
     const q = query(
       collection(db, 'locations'), 
-      where('uid', 'in', childUids.slice(0, 10)),
+      where('uid', '==', childUid),
       orderBy('timestamp', 'desc'), 
       limit(1)
     );
     
     onSnapshot(q, (snap) => {
-      const childStatus = document.getElementById('child-status');
+      console.log('📊 SNAPSHOT:', snap.size, 'docs');  // DEBUG
+      
+      const childStatus = document.getElementById('child-status');  // ✅ FIXED
       if (snap.empty) {
+        console.log('❌ NO DATA');  // DEBUG
         childStatus.innerHTML = 'Waiting for child location...';
         childStatus.className = 'status pending';
         return;
       }
       
       const latest = snap.docs[0].data();
-      const lat = latest.lat;
-      const lng = latest.lng;
+      const lat = parseFloat(latest.lat);
+      const lng = parseFloat(latest.lng);
       
-      // 🔥 LIVE MOVING CHILD MARKER
+      console.log('📍 LOCATION:', lat, lng);  // DEBUG
+      
       if (!childMarker) {
         childMarker = L.marker([lat, lng], {
           icon: L.divIcon({
@@ -351,10 +351,8 @@ onAuthStateChanged(auth, async (user) => {
         childMarker.setLatLng([lat, lng]);
       }
       
-      // Auto zoom to child
       map.setView([lat, lng], 15);
       
-      // Distance calculations
       const schoolDist = haversineDistance(lat, lng, GEOFENCES.school.lat, GEOFENCES.school.lng);
       const homeDist = haversineDistance(lat, lng, GEOFENCES.home.lat, GEOFENCES.home.lng);
       
