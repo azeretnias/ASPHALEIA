@@ -9,7 +9,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, sans-serif; background: #f5f5f5; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .card { background: white; border-radius: 12px; padding: 24px; margin: 16px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .card { background: white; border-radius: 12px; padding: 24px; margin: 16px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: relative;  /* 👈 ADD THIS */}
     button { background: #0066cc; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; }
     button:hover { background: #0052a3; }
     .status { padding: 12px; border-radius: 8px; margin: 8px 0; }
@@ -17,6 +17,18 @@
     .status.pending { background: #fff3cd; color: #856404; }
     input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin: 8px 0; font-size: 16px; }
     .hidden { display: none; }
+    .logout-btn {
+  background: #ff4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+}
+.logout-btn:hover { background: #cc0000; }
+
   </style>
 </head>
 <body>
@@ -38,6 +50,9 @@
     <!-- Student Dashboard -->
     <div id="student-dashboard" class="card hidden">
       <h2>👨‍🎓 Student View</h2>
+      <div style="position: absolute; top: 10px; right: 10px;">
+  <button onclick="logout()" class="logout-btn">🚪 Logout</button>
+</div>
       <div id="student-status" class="status pending">Status: Not tracking</div>
       <button onclick="startTracking()">Start Commute Tracking</button>
       <div id="location-log"></div>
@@ -46,6 +61,9 @@
     <!-- Guardian Dashboard -->
     <div id="guardian-dashboard" class="card hidden">
       <h2>👨‍👧 Guardian View</h2>
+      <div style="position: absolute; top: 10px; right: 10px;">
+  <button onclick="logout()" class="logout-btn">🚪 Logout</button>
+</div>
       <div id="child-status">Waiting for child data...</div>
     </div>
   </div>
@@ -53,7 +71,7 @@
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
     import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
     // YOUR FIREBASE CONFIG FROM PHASE 1
@@ -99,18 +117,24 @@ window.login = async () => {
   }
 };
 
-    // Role-based Dashboards
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const userDoc = doc(db, 'users', user.uid);
-        onSnapshot(userDoc, (snap) => {
-          if (snap.exists()) {
-            userRole = snap.data().role;
-            showDashboard(userRole);
-          }
-        });
+    // Role-based Dashboards + LOGOUT HANDLING
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    const userDoc = doc(db, 'users', user.uid);
+    onSnapshot(userDoc, (snap) => {
+      if (snap.exists()) {
+        userRole = snap.data().role;
+        showDashboard(userRole);
       }
     });
+  } else {
+    // 👈 SHOW AUTH SCREEN ON LOGOUT
+    document.getElementById('auth-screen').classList.remove('hidden');
+    document.getElementById('student-dashboard').classList.add('hidden');
+    document.getElementById('guardian-dashboard').classList.add('hidden');
+  }
+});
+
 
     function showDashboard(role) {
       document.getElementById('auth-screen').classList.add('hidden');
@@ -143,5 +167,16 @@ window.login = async () => {
       navigator.serviceWorker.register('/sw.js');
     }
   </script>
+  <script>
+window.logout = async () => {
+  try {
+    await signOut(auth);
+    alert('Logged out! Back to sign-in.');
+  } catch (error) {
+    console.error('Logout failed:', error);
+    location.reload();
+  }
+};
+</script>
 </body>
 </html>
