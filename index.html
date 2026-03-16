@@ -30,7 +30,14 @@
   font-size: 14px;
 }
 .logout-btn:hover { background: #cc0000; }
-
+button:disabled { background: #ccc; cursor: not-allowed; }
+.status.tracking { background: #007bff; color: white; }
+.control-group { display: flex; gap: 12px; margin: 16px 0; }
+.control-btn { flex: 1; padding: 16px; font-size: 18px; }
+.child-item { 
+  background: #f8f9fa; padding: 12px; border-radius: 8px; margin: 8px 0;
+  display: flex; justify-content: space-between; align-items: center;
+}
   </style>
 </head>
 <body>
@@ -55,7 +62,8 @@
       <div style="position: absolute; top: 10px; right: 10px;">
   <button onclick="logout()" class="logout-btn">🚪 Logout</button>
 </div>
-      <div id="student-status" class="status pending">Status: Not tracking</div>
+      <div id="student-status" class="status pending">Status: Waiting for guardian command</div>
+      <div id="command-log"></div>
       <button onclick="startTracking()">Start Commute Tracking</button>
       <button onclick="stopTracking()" style="background:#ff4444;">Stop Tracking</button>
       <div id="location-log"></div>
@@ -73,7 +81,7 @@
   <input id="child-email" placeholder="Child's email (student@test.com)" style="width:70%; margin-right:10px;">
   <button onclick="linkChild()" style="width:28%;">Link Child</button>
 </div>
-<div id="linked-children" style="margin-top:16px;"></div>
+<div id="linked-children"></div>
 
     </div>
   </div>
@@ -82,7 +90,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-    import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, where, orderBy, limit, getDocs, arrayUnion, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, where, orderBy, limit, getDocs, arrayUnion, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
    const firebaseConfig = {
   apiKey: "AIzaSyDZgu8s-nebRP02myIna8FT9SvrKl9DVms",
   authDomain: "asphaleia-project-test.firebaseapp.com",
@@ -116,6 +124,41 @@ const GEOFENCES = {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
   }
+    window.sendTrackingCommand = async (childUid, command) => {
+  try {
+    await setDoc(doc(db, 'trackingCommands', childUid), {
+      command: command,  // "START" or "STOP"
+      guardianUid: auth.currentUser.uid,
+      timestamp: serverTimestamp()
+    }, { merge: true });
+    console.log(`✅ Command ${command} sent to ${childUid}`);
+  } catch(e) {
+    alert('Error sending command: ' + e.message);
+  }
+};
+
+// 🔥 NEW: Student listens for guardian commands (25 lines)
+let commandListener = null;
+function listenForCommands() {
+  if (commandListener) return;
+  commandListener = onSnapshot(doc(db, 'trackingCommands', auth.currentUser.uid), (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    const command = data.command;
+    
+    if (command === 'START') {
+      document.getElementById('command-log').innerHTML += 
+        `<div class="status ok">🚀 Guardian: START tracking</div>`;
+      document.getElementById('student-status').textContent = 'Status: Tracking (Guardian Active)';
+      document.getElementById('student-status').className = 'status tracking';
+      startTracking();
+    } else if (command === 'STOP') {
+      document.getElementById('command-log').innerHTML += 
+        `<div class="status pending">⏹️ Guardian: STOP tracking</div>`;
+      stopTracking();
+    }
+  });
+}
     // Auth Functions
 window.register = async () => {
   const email = document.getElementById('email').value;
@@ -223,7 +266,10 @@ onAuthStateChanged(auth, async (user) => {
       document.getElementById(role === 'guardian' ? 'guardian-dashboard' : 'student-dashboard').classList.remove('hidden');
         if (role === 'guardian') {
         watchGuardianLocations();  // allow guardian to see location.
-        }
+      }
+      if (role === 'student') {
+    listenForCommands();
+      }
     }
      function watchGuardianLocations() {
   const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
@@ -264,9 +310,9 @@ onAuthStateChanged(auth, async (user) => {
         <strong>${schoolDist <= 50 ? '✅ AT SCHOOL' : '🚶 En route'}</strong>
       `;
       childStatus.className = 'status ok';
-    });
-  });
-}
+    });  // ✅ First onSnapshot
+  });    // ✅ Second onSnapshot
+}        // ✅ watchGuardianLocations
     //------------------------------------------------------------------------------------------------------------------
     // allows for child adding
      window.linkChild = async () => {
@@ -289,9 +335,15 @@ onAuthStateChanged(auth, async (user) => {
          }, { merge: true });
          
          // 3. Update UI
-         document.getElementById('linked-children').innerHTML = `
-           <div class="status ok">✅ Linked: ${childEmail}</div>
-         `;
+document.getElementById('linked-children').innerHTML = `
+  <div class="child-item">
+    ${childEmail}
+    <div>
+      <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'START')">▶️ START</button>
+      <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'STOP')">⏹️ STOP</button>
+    </div>
+  </div>
+`;
          
          alert('Child linked successfully!');
        } catch(e) {
