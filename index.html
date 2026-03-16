@@ -274,18 +274,19 @@ onAuthStateChanged(auth, async (user) => {
        if (!childEmail) return alert('Enter child email');
        
        try {
-         // 1. Find student by email (NEEDS getDocs import!)
+         // 1. Find student by email
          const q = query(collection(db, 'users'), where('email', '==', childEmail), where('role', '==', 'student'), limit(1));
-         const snap = await getDocs(q);  // ERROR: getDocs not imported!
+         const snap = await getDocs(q);
          
          if (snap.empty) return alert('Student not found');
          
          const childUid = snap.docs[0].id;
+         const guardianUid = auth.currentUser.uid;
          
-         // 2. Link to guardian
-        await updateDoc(doc(db, 'guardianChildren', auth.currentUser.uid), {
-    children: arrayUnion(childUid)
-  });
+         // 2. ✅ CREATE document if missing, then add child
+         await setDoc(doc(db, 'guardianChildren', guardianUid), {
+           children: [childUid]
+         }, { merge: true });
          
          // 3. Update UI
          document.getElementById('linked-children').innerHTML = `
