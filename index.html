@@ -143,6 +143,7 @@ onAuthStateChanged(auth, async (user) => {
 
     // Student Tracking (Phase 3 preview)
     window.startTracking = () => {
+      
       document.getElementById('student-status').textContent = 'Status: GPS Active';
       document.getElementById('student-status').className = 'status ok';
       
@@ -159,6 +160,14 @@ onAuthStateChanged(auth, async (user) => {
         }, { enableHighAccuracy: true });
       }
     };
+    window.logout = async () => {
+  try {
+    await signOut(auth);
+    // onAuthStateChanged will handle showing auth screen
+  } catch (error) {
+    console.error('Logout failed:', error);
+  }
+};
   </script>
 
   <!-- Service Worker Registration -->
@@ -167,16 +176,5 @@ onAuthStateChanged(auth, async (user) => {
       navigator.serviceWorker.register('/sw.js');
     }
   </script>
-  <script>
-window.logout = async () => {
-  try {
-    await signOut(auth);
-    alert('Logged out! Back to sign-in.');
-  } catch (error) {
-    console.error('Logout failed:', error);
-    location.reload();
-  }
-};
-</script>
 </body>
 </html>
