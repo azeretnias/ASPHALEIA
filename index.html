@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Asphaleia - Phase 3 ✅ CUSTOM GEOFENCES</title>
+  <title>Asphaleia - Phase 3 ✅ LOCATION PERMISSION FIXED</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -30,12 +30,43 @@
     #map { height: 350px; width: 100%; border-radius: 8px; margin: 16px 0; border: 2px solid #0066cc; }
     
     /* MARKER CSS */
-    .leaflet-marker-pane .child-location { background: #ff6b6b !important; border-radius: 50% !important; border: 3px solid white !important; box-shadow: 0 4px 12px rgba(255,107,107,0.6) !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 20px !important; }
+    .leaflet-marker-pane .child-location { 
+      background: #ff6b6b !important; 
+      border-radius: 50% !important; 
+      border: 3px solid white !important; 
+      box-shadow: 0 4px 12px rgba(255,107,107,0.6) !important; 
+      display: flex !important; 
+      align-items: center !important; 
+      justify-content: center !important; 
+      font-size: 20px !important; 
+      width: 40px !important; 
+      height: 40px !important;
+    }
     
-    /* GEOFENCE PRESETS */
+    /* LOCATION PERMISSION UI */
+    .location-permission { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+      color: white; 
+      padding: 20px; 
+      border-radius: 12px; 
+      text-align: center; 
+      margin: 16px 0;
+    }
+    .gps-indicator { 
+      display: inline-block; 
+      width: 12px; 
+      height: 12px; 
+      border-radius: 50%; 
+      margin-right: 8px;
+      animation: pulse 2s infinite;
+    }
+    .gps-ok { background: #00ff88; }
+    .gps-denied { background: #ff4444; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    
+    /* GEOFENCE UI */
     .geofence-section { background: #f0f8ff; padding: 16px; border-radius: 8px; margin: 16px 0; }
     .geofence-preset { display: flex; gap: 8px; align-items: center; padding: 8px; background: white; border-radius: 6px; margin: 4px 0; }
-    .geofence-preset button { padding: 6px 12px; font-size: 14px; }
     .geofence-list { max-height: 200px; overflow-y: auto; }
     .geofence-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #e8f5e8; margin: 4px 0; border-radius: 6px; }
   </style>
@@ -45,7 +76,7 @@
     <!-- AUTH SCREEN -->
     <div id="auth-screen" class="card">
       <h1>🏦 Asphaleia</h1>
-      <p>Phase 3 GPS + CUSTOM GEOFENCES ✅</p>
+      <p>Phase 3 ✅ LOCATION PERMISSION FIXED</p>
       <input id="email" type="email" placeholder="Email">
       <input id="password" type="password" placeholder="Password">
       <select id="role">
@@ -60,10 +91,18 @@
     <div id="student-dashboard" class="card hidden">
       <h2>👨‍🎓 Student View</h2>
       <button onclick="logout()" class="logout-btn">🚪 Logout</button>
-      <div id="student-status" class="status pending">Status: Waiting for guardian command</div>
+      
+      <!-- 🔥 LOCATION PERMISSION STATUS -->
+      <div id="gps-status" class="location-permission">
+        <div id="gps-indicator" class="gps-indicator gps-denied"></div>
+        <div id="gps-text">Click "Request GPS" to enable location tracking</div>
+        <button onclick="requestLocationPermission()" style="margin-top:12px;padding:12px 24px;font-size:18px;">📍 Request GPS Permission</button>
+      </div>
+      
+      <div id="student-status" class="status pending">Status: Waiting for GPS + guardian command</div>
       <div id="command-log"></div>
-      <button onclick="startTracking()">🚀 Start Commute Tracking</button>
-      <button onclick="stopTracking()" class="control-btn" style="background:#ff4444;">⏹️ Stop</button>
+      <button onclick="startTracking()" id="start-tracking-btn" disabled>🚀 Start Commute Tracking</button>
+      <button onclick="stopTracking()" class="control-btn" style="background:#ff4444;display:none;">⏹️ Stop</button>
       <div id="location-log"></div>
     </div>
 
@@ -72,9 +111,15 @@
       <h2>👨‍👧 Guardian View - Custom Geofences</h2>
       <button onclick="logout()" class="logout-btn">🚪 Logout</button>
       
+      <!-- 🔥 GUARDIAN LOCATION PERMISSION -->
+      <div id="guardian-gps-status" class="location-permission" style="display:none;">
+        <div id="guardian-gps-indicator" class="gps-indicator gps-denied"></div>
+        <div id="guardian-gps-text">Click to set your location for Home/School</div>
+        <button onclick="useMyLocation()" style="margin-top:12px;">📍 Use My Location</button>
+      </div>
+      
       <div id="map"></div>
       
-      <!-- 🔥 CUSTOM SCHOOL/HOME GEOFENCES -->
       <div class="geofence-section">
         <h3>🏫👨‍👧 Set School & Home Locations</h3>
         <div class="control-group">
@@ -87,10 +132,8 @@
           <input id="geo-radius" placeholder="Radius (m)" value="50" style="width:100px;">
           <button onclick="saveCustomGeofence()" class="control-btn">💾 Save</button>
         </div>
-        <button onclick="useMyLocation()" class="control-btn" style="width:100%; margin-top:8px;">📍 Use My Location</button>
       </div>
 
-      <!-- SAVED GEOFENCES LIST -->
       <div id="saved-geofences" class="geofence-list"></div>
       
       <div id="child-status" class="status pending">Waiting for child data...</div>
@@ -107,7 +150,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-    import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, where, orderBy, limit, getDocs, getDoc, serverTimestamp, arrayUnion, arrayRemove } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, where, orderBy, limit, getDocs, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
     
     const firebaseConfig = {
       apiKey: "AIzaSyDZgu8s-nebRP02myIna8FT9SvrKl9DVms",
@@ -128,10 +171,50 @@
     let watchId = null;
     let consecutiveInside = 0;
     let lastStatus = 'outside';
-    let customGeofences = {}; // Guardian's saved geofences
-    let geofenceLayers = []; // Map layers for cleanup
+    let customGeofences = {};
+    let geofenceLayers = [];
+    let locationPermissionGranted = false;
 
-    // Haversine distance
+    // 🔥 FIXED: EXPLICIT LOCATION PERMISSION REQUEST
+    window.requestLocationPermission = () => {
+      if (!navigator.geolocation) {
+        alert('GPS not supported on this device');
+        return;
+      }
+
+      document.getElementById('gps-text').textContent = 'Requesting GPS permission...';
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          locationPermissionGranted = true;
+          document.getElementById('gps-indicator').className = 'gps-indicator gps-ok';
+          document.getElementById('gps-text').innerHTML = `
+            ✅ GPS Enabled<br>
+            📍 ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}
+          `;
+          document.getElementById('start-tracking-btn').disabled = false;
+          console.log('✅ GPS PERMISSION GRANTED');
+        },
+        (error) => {
+          locationPermissionGranted = false;
+          let message = 'GPS permission denied';
+          switch(error.code) {
+            case error.PERMISSION_DENIED: message = 'GPS access denied by user'; break;
+            case error.POSITION_UNAVAILABLE: message = 'GPS signal unavailable'; break;
+            case error.TIMEOUT: message = 'GPS request timeout'; break;
+          }
+          document.getElementById('gps-indicator').className = 'gps-indicator gps-denied';
+          document.getElementById('gps-text').textContent = `❌ ${message}`;
+          console.error('❌ GPS ERROR:', error);
+        },
+        { 
+          enableHighAccuracy: true, 
+          timeout: 15000, 
+          maximumAge: 60000 
+        }
+      );
+    };
+
     function haversineDistance(lat1, lng1, lat2, lng2) {
       const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -143,7 +226,26 @@
       return R * c;
     }
 
-    // 🔥 NEW: Save guardian's custom geofences to Firestore
+    window.useMyLocation = () => {
+      if (!navigator.geolocation) return alert('GPS not supported');
+      
+      document.getElementById('guardian-gps-text').textContent = 'Getting your location...';
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          document.getElementById('geo-lat').value = position.coords.latitude.toFixed(6);
+          document.getElementById('geo-lng').value = position.coords.longitude.toFixed(6);
+          document.getElementById('guardian-gps-indicator').className = 'gps-indicator gps-ok';
+          document.getElementById('guardian-gps-text').innerHTML = `✅ Location set: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+        },
+        (error) => {
+          document.getElementById('guardian-gps-indicator').className = 'gps-indicator gps-denied';
+          document.getElementById('guardian-gps-text').textContent = '❌ Location access denied';
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    };
+
     window.saveCustomGeofence = async () => {
       const type = document.getElementById('geofence-type').value;
       const lat = parseFloat(document.getElementById('geo-lat').value);
@@ -151,45 +253,26 @@
       const radius = parseInt(document.getElementById('geo-radius').value);
 
       if (isNaN(lat) || isNaN(lng) || isNaN(radius) || radius < 10) {
-        alert('Please enter valid coordinates and radius (min 10m)');
+        alert('Enter valid coordinates and radius (min 10m)');
         return;
       }
 
-      const geofence = { lat, lng, radius, name: type === 'school' ? 'School' : 'Home', type };
-      customGeofences[type] = geofence;
-
-      // Save to Firestore
+      customGeofences[type] = { lat, lng, radius, name: type === 'school' ? 'School' : 'Home', type };
+      
       try {
         await setDoc(doc(db, 'guardianGeofences', auth.currentUser.uid), {
           geofences: customGeofences
         }, { merge: true });
 
-        // Add to map
         clearGeofenceLayers();
         renderGeofencesOnMap();
         renderGeofenceList();
-
-        alert(`✅ ${type.toUpperCase()} saved at ${lat.toFixed(4)}, ${lng.toFixed(4)} (${radius}m)`);
+        alert(`✅ ${type.toUpperCase()} saved!`);
       } catch(e) {
         alert('Save failed: ' + e.message);
       }
     };
 
-    // 🔥 NEW: Use guardian's current location for geofence
-    window.useMyLocation = () => {
-      if (!navigator.geolocation) {
-        alert('Geolocation not supported');
-        return;
-      }
-      
-      navigator.geolocation.getCurrentPosition((position) => {
-        document.getElementById('geo-lat').value = position.coords.latitude.toFixed(6);
-        document.getElementById('geo-lng').value = position.coords.longitude.toFixed(6);
-        alert('📍 Location set!');
-      }, () => alert('Location access denied'));
-    };
-
-    // Render saved geofences on map
     function renderGeofencesOnMap() {
       Object.entries(customGeofences).forEach(([key, fence]) => {
         const color = key === 'school' ? '#00ff00' : '#ff4444';
@@ -200,7 +283,6 @@
       });
     }
 
-    // Render geofence list in UI
     function renderGeofenceList() {
       const list = document.getElementById('saved-geofences');
       list.innerHTML = Object.entries(customGeofences).map(([key, fence]) => `
@@ -219,59 +301,62 @@
       renderGeofenceList();
     };
 
-    // Load guardian's geofences on login
     async function loadGuardianGeofences() {
       try {
         const snap = await getDoc(doc(db, 'guardianGeofences', auth.currentUser.uid));
-        if (snap.exists()) {
-          customGeofences = snap.data().geofences || {};
-          renderGeofenceList();
-        }
-      } catch(e) {
-        console.log('No saved geofences yet');
-      }
+        if (snap.exists()) customGeofences = snap.data().geofences || {};
+      } catch(e) { console.log('No geofences yet'); }
     }
 
-    // Clear old geofence layers
     function clearGeofenceLayers() {
       geofenceLayers.forEach(layer => map.removeLayer(layer));
       geofenceLayers = [];
     }
 
-    // STUDENT TRACKING (unchanged but uses customGeofences)
+    // FIXED STUDENT TRACKING WITH PERMISSION CHECK
     window.startTracking = async () => {
+      if (!locationPermissionGranted) {
+        alert('Please click "Request GPS Permission" first!');
+        return;
+      }
       if (watchId) return alert('Already tracking!');
-      
-      watchId = navigator.geolocation.watchPosition(async (position) => {
-        const { latitude: lat, longitude: lng } = position.coords;
-        
-        await addDoc(collection(db, 'locations'), {
-          uid: auth.currentUser.uid, lat, lng, timestamp: serverTimestamp()
-        });
-        
-        // Check custom geofences
-        Object.values(customGeofences || {}).forEach(fence => {
-          const distance = haversineDistance(lat, lng, fence.lat, fence.lng);
-          if (distance <= fence.radius) {
-            consecutiveInside++;
-            if (consecutiveInside >= 2) {
-              alert(`✅ ENTERED ${fence.name} (${distance.toFixed(0)}m)`);
-              lastStatus = 'inside';
+
+      watchId = navigator.geolocation.watchPosition(
+        async (position) => {
+          const { latitude: lat, longitude: lng } = position.coords;
+          
+          await addDoc(collection(db, 'locations'), {
+            uid: auth.currentUser.uid, lat, lng, timestamp: serverTimestamp()
+          });
+          
+          document.getElementById('location-log').innerHTML += 
+            `<div class="status ok">📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}</div>`;
+          
+          Object.values(customGeofences).forEach(fence => {
+            const distance = haversineDistance(lat, lng, fence.lat, fence.lng);
+            if (distance <= fence.radius) {
+              consecutiveInside++;
+              if (consecutiveInside >= 2) {
+                alert(`✅ ENTERED ${fence.name} (${distance.toFixed(0)}m)`);
+                lastStatus = 'inside';
+              }
+            } else {
+              consecutiveInside = 0;
+              if (lastStatus === 'inside') {
+                alert(`✅ EXITED ${fence.name}`);
+                lastStatus = 'outside';
+              }
             }
-          } else {
-            consecutiveInside = 0;
-            if (lastStatus === 'inside') {
-              alert(`✅ EXITED ${fence.name}`);
-              lastStatus = 'outside';
-            }
-          }
-        });
-      }, (error) => {
-        document.getElementById('student-status').className = 'status error';
-        document.getElementById('student-status').textContent = 'GPS Error: ' + error.message;
-      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+          });
+        },
+        (error) => {
+          document.getElementById('student-status').className = 'status error';
+          document.getElementById('student-status').textContent = 'GPS Error: ' + error.message;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      );
       
-      document.getElementById('student-status').textContent = '🛰️ LIVE TRACKING';
+      document.getElementById('student-status').textContent = '🛰️ LIVE TRACKING ACTIVE';
       document.getElementById('student-status').className = 'status tracking';
     };
 
@@ -284,15 +369,17 @@
       }
     };
 
-    // GUARDIAN TRACKING (updated to use custom geofences)
     function watchGuardianLocations() {
       if (!map) {
         map = L.map('map').setView([25.2854, 51.5310], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
       }
-
-      loadGuardianGeofences(); // Load saved geofences
-      renderGeofencesOnMap();
+      
+      document.getElementById('guardian-gps-status').style.display = 'block';
+      loadGuardianGeofences().then(() => {
+        renderGeofenceList();
+        renderGeofencesOnMap();
+      });
 
       const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
       onSnapshot(guardianDoc, (snap) => {
@@ -306,13 +393,9 @@
         }
         
         const childUid = childUids[0];
-        console.log('🔍 TRACKING CHILD:', childUid);
-        
         const q = query(collection(db, 'locations'), where('uid', '==', childUid), orderBy('uid'), orderBy('timestamp', 'desc'), limit(1));
         
         onSnapshot(q, (snap) => {
-          console.log('📊 SNAPSHOT:', snap.size);
-          
           if (snap.empty) {
             childStatus.innerHTML = `👦 ${childUid.slice(0,8)}... No location data`;
             return;
@@ -321,8 +404,6 @@
           const latest = snap.docs[0].data();
           const lat = Number(latest.lat);
           const lng = Number(latest.lng);
-          
-          console.log('📍 LIVE:', lat.toFixed(4), lng.toFixed(4));
           
           if (!childMarker) {
             childMarker = L.marker([lat, lng], {
@@ -339,8 +420,7 @@
           
           map.setView([lat, lng], 16);
           
-          // Calculate distances to custom geofences
-          let statusHTML = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}<br>🕒 ${latest.timestamp?.toDate?.().toLocaleString() || 'Now'}<br>`;
+          let statusHTML = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}<br>🕒 ${latest.timestamp?.toDate?.()?.toLocaleString() || 'Now'}<br>`;
           let nearestZone = null;
           let minDist = Infinity;
           
@@ -353,7 +433,7 @@
             }
           });
           
-          statusHTML += `<strong>${minDist <= nearestZone?.radius ? `✅ AT ${nearestZone.name}` : '🚶 EN ROUTE'}</strong>`;
+          statusHTML += `<strong>${minDist <= nearestZone?.radius ? `✅ AT ${nearestZone?.name}` : '🚶 EN ROUTE'}</strong>`;
           childStatus.innerHTML = statusHTML;
           childStatus.className = 'status ok';
         });
@@ -372,7 +452,7 @@
           await setDoc(doc(db, 'guardianChildren', userCredential.user.uid), { children: [] }, { merge: true });
           await setDoc(doc(db, 'guardianGeofences', userCredential.user.uid), { geofences: {} }, { merge: true });
         }
-        alert('✅ Registered! Refresh.');
+        alert('✅ Registered! Refresh page.');
       } catch(e) { alert(e.message); }
     };
 
@@ -423,7 +503,8 @@
         const { command } = snap.data();
         if (command === 'START') {
           document.getElementById('command-log').innerHTML += '<div class="status ok">🚀 START tracking</div>';
-          startTracking();
+          if (locationPermissionGranted) startTracking();
+          else requestLocationPermission();
         } else if (command === 'STOP') {
           document.getElementById('command-log').innerHTML += '<div class="status pending">⏹️ STOP tracking</div>';
           stopTracking();
