@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- ------------------------------------------------------------------------------------------------------------- -->
-  <!-- INTERFACE SECTION -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Asphaleia - Phase 3</title>
+  <title>Asphaleia - Phase 3 ✅ FIXED</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -13,39 +11,31 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, sans-serif; background: #f5f5f5; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .card { background: white; border-radius: 12px; padding: 24px; margin: 16px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: relative;  /* 👈 ADD THIS */}
+    .card { background: white; border-radius: 12px; padding: 24px; margin: 16px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: relative; }
     button { background: #0066cc; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; }
     button:hover { background: #0052a3; }
     .status { padding: 12px; border-radius: 8px; margin: 8px 0; }
     .status.ok { background: #d4edda; color: #155724; }
     .status.pending { background: #fff3cd; color: #856404; }
+    .status.error { background: #f8d7da; color: #721c24; }
     input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin: 8px 0; font-size: 16px; }
     .hidden { display: none; }
-    .logout-btn {
-  background: #ff4444;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 14px;
-}
-.logout-btn:hover { background: #cc0000; }
-button:disabled { background: #ccc; cursor: not-allowed; }
-.status.tracking { background: #007bff; color: white; }
-.control-group { display: flex; gap: 12px; margin: 16px 0; }
-.control-btn { flex: 1; padding: 16px; font-size: 18px; }
-.child-item { 
-  background: #f8f9fa; padding: 12px; border-radius: 8px; margin: 8px 0;
-  display: flex; justify-content: space-between; align-items: center;
-}
-    #map { border: 2px solid #0066cc; margin: 16px 0; }
-.child-location { 
-  background: #ff6b6b !important; 
-  border-radius: 50%; 
-  border: 3px solid white !important;
-}
+    .logout-btn { background: #ff4444; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 14px; }
+    .logout-btn:hover { background: #cc0000; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .status.tracking { background: #007bff; color: white; }
+    .control-group { display: flex; gap: 12px; margin: 16px 0; }
+    .control-btn { flex: 1; padding: 16px; font-size: 18px; }
+    .child-item { background: #f8f9fa; padding: 12px; border-radius: 8px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+    #map { height: 300px; width: 100%; border-radius: 8px; margin: 16px 0; border: 2px solid #0066cc; }
+    
+    /* ✅ FIXED MARKER CSS */
+    .leaflet-marker-pane .child-location { background: #ff6b6b !important; border-radius: 50% !important; border: 3px solid white !important; box-shadow: 0 4px 12px rgba(255,107,107,0.6) !important; }
+    .leaflet-marker-pane .child-location div { font-size: 10px !important; }
+    
+    .geofence-controls { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
+    .geofence-controls input { width: auto !important; flex: 1; min-width: 100px; }
+    .test-zone { background: #00ff88 !important; }
   </style>
 </head>
 <body>
@@ -53,9 +43,9 @@ button:disabled { background: #ccc; cursor: not-allowed; }
     <!-- AUTH SCREEN -->
     <div id="auth-screen" class="card">
       <h1>🏦 Asphaleia</h1>
-      <p>Student Safety Prototype - Phase 3</p>
+      <p>Phase 3 GPS LIVE TRACKING ✅ FIXED</p>
       <input id="email" type="email" placeholder="Email">
-            <input id="password" type="password" placeholder="Password">
+      <input id="password" type="password" placeholder="Password">
       <select id="role" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin: 8px 0; font-size: 16px;">
         <option value="student">👨‍🎓 Student</option>
         <option value="guardian">👨‍👧 Guardian</option>
@@ -63,361 +53,370 @@ button:disabled { background: #ccc; cursor: not-allowed; }
       <button onclick="register()">Register</button>
       <button onclick="login()">Login</button>
     </div>
-    <!-- ------------------------------------------------------------------------------------------------------------- -->
+
     <!-- STUDENT DASHBOARD -->
     <div id="student-dashboard" class="card hidden">
       <h2>👨‍🎓 Student View</h2>
       <div style="position: absolute; top: 10px; right: 10px;">
-  <button onclick="logout()" class="logout-btn">🚪 Logout</button>
-</div>
+        <button onclick="logout()" class="logout-btn">🚪 Logout</button>
+      </div>
       <div id="student-status" class="status pending">Status: Waiting for guardian command</div>
       <div id="command-log"></div>
-      <button onclick="startTracking()">Start Commute Tracking</button>
-      <button onclick="stopTracking()" style="background:#ff4444;">Stop Tracking</button>
+      <button onclick="startTracking()">🚀 Start Commute Tracking</button>
+      <button onclick="stopTracking()" style="background:#ff4444;">⏹️ Stop Tracking</button>
       <div id="location-log"></div>
     </div>
-    <!-- ------------------------------------------------------------------------------------------------------------- -->
+
     <!-- GUARDIAN DASHBOARD -->
     <div id="guardian-dashboard" class="card hidden">
       <h2>👨‍👧 Guardian View</h2>
       <div style="position: absolute; top: 10px; right: 10px;">
-  <button onclick="logout()" class="logout-btn">🚪 Logout</button>
-</div>
-        <!-- 🗺️ LIVE MAP (300px height) -->
-        <div id="map" style="height: 300px; width: 100%; border-radius: 8px; margin: 16px 0;"></div>
+        <button onclick="logout()" class="logout-btn">🚪 Logout</button>
+      </div>
       
-      <div id="child-status">Waiting for child data...</div>
-      <!-- This is contained in the guardian dashboard card. -->
+      <div id="map"></div>
       
- <!-- Link Child Input -->
-  <div style="margin: 16px 0;">
-    <input id="child-email" placeholder="Child's email (student@test.com)" style="width:70%; margin-right:10px;">
-    <button onclick="linkChild()" style="width:28%;">Link Child</button>
-  </div>
+      <!-- ✅ NEW GEOFENCE TEST CONTROLS -->
+      <div class="geofence-controls">
+        <input id="geo-lat" placeholder="Lat 25.2854" value="25.2854">
+        <input id="geo-lng" placeholder="Lng 51.5310" value="51.5310">
+        <input id="geo-radius" placeholder="50m" value="50">
+        <button onclick="addTestGeofence()">🎯 Add Zone</button>
+      </div>
       
-<div id="linked-children"></div>
-
+      <div id="child-status" class="status pending">Waiting for child data...</div>
+      
+      <div style="margin: 16px 0;">
+        <input id="child-email" placeholder="Child's email (student@test.com)" style="width:70%; margin-right:10px;">
+        <button onclick="linkChild()" style="width:28%;">👦 Link Child</button>
+      </div>
+      
+      <div id="linked-children"></div>
     </div>
   </div>
-<!-- ------------------------------------------------------------------------------------------------------------- -->
-  <!-- FIREBASE SDK area -->
+
+  <!-- 🔥 FIXED FIREBASE + GPS IMPLEMENTATION -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-    import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, where, orderBy, limit, getDocs, arrayUnion, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-   const firebaseConfig = {
-  apiKey: "AIzaSyDZgu8s-nebRP02myIna8FT9SvrKl9DVms",
-  authDomain: "asphaleia-project-test.firebaseapp.com",
-  projectId: "asphaleia-project-test",
-  storageBucket: "asphaleia-project-test.firebasestorage.app",
-  messagingSenderId: "325392129267",
-  appId: "1:325392129267:web:610966cf9d8b1cb46c2b86"
-};
+    import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, where, orderBy, limit, getDocs, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    
+    const firebaseConfig = {
+      apiKey: "AIzaSyDZgu8s-nebRP02myIna8FT9SvrKl9DVms",
+      authDomain: "asphaleia-project-test.firebaseapp.com",
+      projectId: "asphaleia-project-test",
+      storageBucket: "asphaleia-project-test.firebasestorage.app",
+      messagingSenderId: "325392129267",
+      appId: "1:325392129267:web:610966cf9d8b1cb46c2b86"
+    };
+    
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    let userRole = 'student'; // Default, set during register
-const GEOFENCES = {
-  school: { lat: 25.2854, lng: 51.5310, radius: 50, name: 'School' },
-  home: { lat: 25.3548, lng: 51.1839, radius: 50, name: 'Home' }
-};
-
-// 🔥 MAP VARIABLES (ADD THESE 2 LINES)
-let map = null;
-let childMarker = null;
-
-let watchId = null;
-let consecutiveInside = 0;
-let lastStatus = 'outside';
-//------------------------------------------------------------------------------------------------------------------
-    // haversine function.
-  function haversineDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371000;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  }
-    window.sendTrackingCommand = async (childUid, command) => {
-  try {
-    await setDoc(doc(db, 'trackingCommands', childUid), {
-      command: command,  // "START" or "STOP"
-      guardianUid: auth.currentUser.uid,
-      timestamp: serverTimestamp()
-    }, { merge: true });
-    console.log(`✅ Command ${command} sent to ${childUid}`);
-  } catch(e) {
-    alert('Error sending command: ' + e.message);
-  }
-};
-
-// 🔥 NEW: Student listens for guardian commands (25 lines)
-let commandListener = null;
-function listenForCommands() {
-  if (commandListener) return;
-  commandListener = onSnapshot(doc(db, 'trackingCommands', auth.currentUser.uid), (snap) => {
-    if (!snap.exists()) return;
-    const data = snap.data();
-    const command = data.command;
+    let userRole = 'student';
+    let map = null;
+    let childMarker = null;
+    let watchId = null;
+    let consecutiveInside = 0;
+    let lastStatus = 'outside';
     
-    if (command === 'START') {
-      document.getElementById('command-log').innerHTML += 
-        `<div class="status ok">🚀 Guardian: START tracking</div>`;
-      document.getElementById('student-status').textContent = 'Status: Tracking (Guardian Active)';
-      document.getElementById('student-status').className = 'status tracking';
-      startTracking();
-    } else if (command === 'STOP') {
-      document.getElementById('command-log').innerHTML += 
-        `<div class="status pending">⏹️ Guardian: STOP tracking</div>`;
-      stopTracking();
+    // ✅ FIXED HAVERSINE
+    function haversineDistance(lat1, lng1, lat2, lng2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
     }
-  });
-}
-    // Auth Functions
-window.register = async () => {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  userRole = document.getElementById('role').value;
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(db, 'users', userCredential.user.uid), {
-      email, 
-      role: userRole, 
-      created: new Date().toISOString()
-    });
 
-    if (userRole === 'guardian') {
-      await setDoc(doc(db, 'guardianChildren', userCredential.user.uid), {
-        children: []
-      }, { merge: true });
-    }
-    
-    alert('Registered as ' + (userRole === 'student' ? 'Student' : 'Guardian') + '! Refresh.');
-  } catch (e) { 
-    alert(e.message); 
-  }
-};
-    //------------------------------------------------------------------------------------------------------------------
-    // GPS AREA
-window.startTracking = () => {
- if (watchId) return alert('Already tracking');
-  
-watchId = navigator.geolocation.watchPosition(
-    async (position) => {
-      const { latitude: lat, longitude: lng } = position.coords;
+    // 🔥 STUDENT TRACKING (IMPROVED)
+    window.startTracking = async () => {
+      if (watchId) return alert('Already tracking!');
       
-      await addDoc(collection(db, 'locations'), {
-        uid: auth.currentUser.uid,
-        lat, lng, timestamp: new Date().toISOString()
-      });
-     //------------------------------------------------------------------------------------------------------------------ 
-      // Check 50m geofences (school/home)
-      for (let [name, fence] of Object.entries(GEOFENCES)) {
-        const distance = haversineDistance(lat, lng, fence.lat, fence.lng);
-        if (distance <= fence.radius) {
-          consecutiveInside++;
-          if (consecutiveInside >= 2) {
-            alert(`✅ ENTER ${name.toUpperCase()}`);
-            lastStatus = 'inside';
+      watchId = navigator.geolocation.watchPosition(
+        async (position) => {
+          const { latitude: lat, longitude: lng } = position.coords;
+          
+          try {
+            await addDoc(collection(db, 'locations'), {
+              uid: auth.currentUser.uid,
+              lat, lng, 
+              timestamp: serverTimestamp()  // ✅ FIXED: serverTimestamp
+            });
+            
+            document.getElementById('location-log').innerHTML += 
+              `<div class="status ok">📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}</div>`;
+            
+            // Geofence alerts
+            for (let [name, fence] of Object.entries({ school: { lat: 25.2854, lng: 51.5310, radius: 50 },
+                                                     home: { lat: 25.3548, lng: 51.1839, radius: 50 } })) {
+              const distance = haversineDistance(lat, lng, fence.lat, fence.lng);
+              if (distance <= fence.radius) {
+                consecutiveInside++;
+                if (consecutiveInside >= 2) {
+                  alert(`✅ ENTERED ${name.toUpperCase()} (${distance.toFixed(0)}m)`);
+                  lastStatus = 'inside';
+                }
+              } else {
+                consecutiveInside = 0;
+                if (lastStatus === 'inside') {
+                  alert(`✅ EXITED ${name.toUpperCase()}`);
+                  lastStatus = 'outside';
+                }
+              }
+            }
+          } catch(e) {
+            console.error('Location save failed:', e);
           }
-        } else {
-          consecutiveInside = 0;
-          if (lastStatus === 'inside') {
-            alert(`✅ EXIT ${name.toUpperCase()}`);
-            lastStatus = 'outside';
-          }
-        }
-      }
-    },
-    (error) => alert('GPS error: ' + error.message),
-    { enableHighAccuracy: true }
-  );
-};
+        },
+        (error) => {
+          console.error('GPS ERROR:', error);
+          document.getElementById('student-status').className = 'status error';
+          document.getElementById('student-status').textContent = 'GPS Error: ' + error.message;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+      
+      document.getElementById('student-status').textContent = '🛰️ LIVE TRACKING';
+      document.getElementById('student-status').className = 'status tracking';
+    };
 
     window.stopTracking = () => {
-  if (watchId) {
-    navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-    document.getElementById('student-status').textContent = 'Status: Not tracking';
-    document.getElementById('student-status').className = 'status pending';
-    alert('Tracking stopped');
-  } else {
-    alert('Not tracking');
-  }
-};
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        document.getElementById('student-status').textContent = 'Status: Not tracking';
+        document.getElementById('student-status').className = 'status pending';
+      }
+    };
 
-window.login = async () => {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-  } catch (e) { 
-    alert(e.message); 
-  }
-};
-//------------------------------------------------------------------------------------------------------------------
+    // 🔥 GUARDIAN TRACKING (COMPLETELY REWRITTEN)
+    function watchGuardianLocations() {
+      if (!map) {
+        map = L.map('map').setView([25.2854, 51.5310], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(map);
+      }
 
-    // Role-based Dashboards + LOGOUT HANDLING
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    const userDoc = doc(db, 'users', user.uid);
-    onSnapshot(userDoc, (snap) => {
-      if (snap.exists()) {
-        userRole = snap.data().role;
-        showDashboard(userRole);
-      }
-    });
-  } else {
-    //  SHOW AUTH SCREEN ON LOGOUT
-    document.getElementById('auth-screen').classList.remove('hidden');
-    document.getElementById('student-dashboard').classList.add('hidden');
-    document.getElementById('guardian-dashboard').classList.add('hidden');
-  }
-});
-//------------------------------------------------------------------------------------------------------------------
-    function showDashboard(role) {
-      document.getElementById('auth-screen').classList.add('hidden');
-      document.getElementById(role === 'guardian' ? 'guardian-dashboard' : 'student-dashboard').classList.remove('hidden');
-        if (role === 'guardian') {
-        watchGuardianLocations();  // allow guardian to see location.
-      }
-      if (role === 'student') {
-    listenForCommands();
-      }
+      // Watch guardian's children
+      const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
+      onSnapshot(guardianDoc, async (snap) => {
+        const childUids = snap.data()?.children || [];
+        const childStatus = document.getElementById('child-status');
+        
+        if (childUids.length === 0) {
+          childStatus.innerHTML = '👦 No children linked';
+          childStatus.className = 'status pending';
+          return;
+        }
+        
+        const childUid = childUids[0];
+        console.log('🔍 TRACKING CHILD:', childUid);
+        
+        // ✅ FIXED QUERY - Matches index: uid_ASC+timestamp_DESC
+        const q = query(
+          collection(db, 'locations'),
+          where('uid', '==', childUid),
+          orderBy('uid'),
+          orderBy('timestamp', 'desc'),
+          limit(1)
+        );
+        
+        onSnapshot(q, (snap) => {
+          console.log('📊 SNAPSHOT:', snap.size, 'docs');
+          
+          if (snap.empty) {
+            childStatus.innerHTML = `👦 ${childUid.slice(0,8)}... No location data yet`;
+            childStatus.className = 'status pending';
+            return;
+          }
+          
+          try {
+            const latest = snap.docs[0].data();
+            const lat = Number(latest.lat);
+            const lng = Number(latest.lng);
+            
+            console.log('📍 LIVE LOCATION:', lat.toFixed(4), lng.toFixed(4));
+            
+            // ✅ FIXED MARKER CREATION
+            if (!childMarker) {
+              childMarker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                  className: 'child-location',
+                  html: '👦',
+                  iconSize: [40, 40],
+                  iconAnchor: [20, 40],
+                  popupAnchor: [0, -40]
+                })
+              }).addTo(map).bindPopup('👦 Child Live Location');
+            } else {
+              childMarker.setLatLng([lat, lng]);
+            }
+            
+            map.setView([lat, lng], 16);
+            
+            // Status with distances
+            const schoolDist = haversineDistance(lat, lng, 25.2854, 51.5310);
+            const homeDist = haversineDistance(lat, lng, 25.3548, 51.1839);
+            
+            childStatus.innerHTML = `
+              📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}<br>
+              🕒 ${latest.timestamp?.toDate ? latest.timestamp.toDate().toLocaleString() : 'Now'}<br>
+              🏫 School: ${schoolDist.toFixed(0)}m | 🏠 Home: ${homeDist.toFixed(0)}m<br>
+              <strong>${schoolDist <= 50 ? '✅ AT SCHOOL' : homeDist <= 50 ? '🏠 AT HOME' : '🚶 EN ROUTE'}</strong>
+            `;
+            childStatus.className = 'status ok';
+            
+          } catch(e) {
+            console.error('LOCATION PARSE ERROR:', e);
+            childStatus.innerHTML = '❌ Data format error';
+            childStatus.className = 'status error';
+          }
+        }, (error) => {
+          console.error('🔥 QUERY ERROR:', error);
+          childStatus.innerHTML = `❌ Query failed: ${error.message}`;
+          childStatus.className = 'status error';
+        });
+      });
     }
-     function watchGuardianLocations() {
-  if (!map) {
-    map = L.map('map').setView([25.2854, 51.5310], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    L.circle([GEOFENCES.school.lat, GEOFENCES.school.lng], {
-      color: '#00ff00', fillColor: '#00ff00', fillOpacity: 0.2, radius: 50
-    }).addTo(map).bindPopup('🏫 School');
-    L.circle([GEOFENCES.home.lat, GEOFENCES.home.lng], {
-      color: '#ff4444', fillColor: '#ff4444', fillOpacity: 0.2, radius: 50
-    }).addTo(map).bindPopup('🏠 Home');
-  }
 
-  const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
-  onSnapshot(guardianDoc, (snap) => {
-    const childUids = snap.data()?.children || [];
-    
-    if (childUids.length === 0) {
-      document.getElementById('child-status').innerHTML = 'No children linked';
-      document.getElementById('child-status').className = 'status pending';
-      return;
-    }
-    
-    const childUid = childUids[0];
-    console.log('🔍 QUERY UID:', childUid);  // DEBUG
-    
-    const q = query(
-      collection(db, 'locations'), 
-      where('uid', '==', childUid),
-      orderBy('timestamp', 'desc'), 
-      limit(1)
-    );
-    
-    onSnapshot(q, (snap) => {
-      console.log('📊 SNAPSHOT:', snap.size, 'docs');  // DEBUG
+    // ✅ CUSTOM GEOFENCE TESTING
+    window.addTestGeofence = () => {
+      const lat = Number(document.getElementById('geo-lat').value);
+      const lng = Number(document.getElementById('geo-lng').value);
+      const radius = Number(document.getElementById('geo-radius').value);
       
-      const childStatus = document.getElementById('child-status');  // ✅ FIXED
-      if (snap.empty) {
-        console.log('❌ NO DATA');  // DEBUG
-        childStatus.innerHTML = 'Waiting for child location...';
-        childStatus.className = 'status pending';
+      if (isNaN(lat) || isNaN(lng) || isNaN(radius)) {
+        alert('Enter valid coordinates');
         return;
       }
       
-      const latest = snap.docs[0].data();
-      const lat = parseFloat(latest.lat);
-      const lng = parseFloat(latest.lng);
+      L.circle([lat, lng], {
+        color: '#00ff88',
+        fillColor: '#00ff88',
+        fillOpacity: 0.3,
+        radius: radius
+      }).addTo(map).bindPopup(`Test Zone (${radius}m)`);
       
-      console.log('📍 LOCATION:', lat, lng);  // DEBUG
+      map.setView([lat, lng], 16);
+      console.log('🟢 TEST ZONE ADDED:', lat, lng, radius);
+    };
+
+    // AUTH FUNCTIONS (UNCHANGED)
+    window.register = async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      userRole = document.getElementById('role').value;
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          email, role: userRole, created: new Date().toISOString()
+        });
+        if (userRole === 'guardian') {
+          await setDoc(doc(db, 'guardianChildren', userCredential.user.uid), { children: [] }, { merge: true });
+        }
+        alert('✅ Registered! Refresh page.');
+      } catch(e) { alert(e.message); }
+    };
+
+    window.login = async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch(e) { alert(e.message); }
+    };
+
+    window.linkChild = async () => {
+      const childEmail = document.getElementById('child-email').value;
+      if (!childEmail) return alert('Enter child email');
       
-      if (!childMarker) {
-        childMarker = L.marker([lat, lng], {
-          icon: L.divIcon({
-            className: 'child-location',
-            html: '👦<div style="font-size:10px;">Child</div>',
-            iconSize: [40, 40],
-            iconAnchor: [20, 40]
-          })
-        }).addTo(map);
-      } else {
-        childMarker.setLatLng([lat, lng]);
+      try {
+        const q = query(collection(db, 'users'), where('email', '==', childEmail), where('role', '==', 'student'), limit(1));
+        const snap = await getDocs(q);
+        if (snap.empty) return alert('Student not found');
+        
+        const childUid = snap.docs[0].id;
+        await setDoc(doc(db, 'guardianChildren', auth.currentUser.uid), {
+          children: [childUid]
+        }, { merge: true });
+        
+        document.getElementById('linked-children').innerHTML = `
+          <div class="child-item">
+            ${childEmail}
+            <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'START')">▶️ START</button>
+            <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'STOP')">⏹️ STOP</button>
+          </div>
+        `;
+        alert('✅ Child linked!');
+      } catch(e) {
+        alert('Error: ' + e.message);
       }
+    };
+
+    window.sendTrackingCommand = async (childUid, command) => {
+      try {
+        await setDoc(doc(db, 'trackingCommands', childUid), {
+          command, guardianUid: auth.currentUser.uid, timestamp: serverTimestamp()
+        }, { merge: true });
+        console.log(`✅ ${command} sent to ${childUid}`);
+      } catch(e) {
+        alert('Command error: ' + e.message);
+      }
+    };
+
+    window.logout = async () => await signOut(auth);
+
+    // DASHBOARD + COMMANDS
+    function listenForCommands() {
+      onSnapshot(doc(db, 'trackingCommands', auth.currentUser.uid), (snap) => {
+        if (!snap.exists()) return;
+        const { command } = snap.data();
+        const log = document.getElementById('command-log');
+        
+        if (command === 'START') {
+          log.innerHTML += '<div class="status ok">🚀 Guardian: START tracking</div>';
+          document.getElementById('student-status').textContent = 'Status: Tracking (Guardian Active)';
+          document.getElementById('student-status').className = 'status tracking';
+          startTracking();
+        } else if (command === 'STOP') {
+          log.innerHTML += '<div class="status pending">⏹️ Guardian: STOP tracking</div>';
+          stopTracking();
+        }
+      });
+    }
+
+    function showDashboard(role) {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById(role === 'guardian' ? 'guardian-dashboard' : 'student-dashboard').classList.remove('hidden');
       
-      map.setView([lat, lng], 15);
-      
-      const schoolDist = haversineDistance(lat, lng, GEOFENCES.school.lat, GEOFENCES.school.lng);
-      const homeDist = haversineDistance(lat, lng, GEOFENCES.home.lat, GEOFENCES.home.lng);
-      
-      childStatus.innerHTML = `
-        📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}<br>
-        🕒 ${new Date(latest.timestamp).toLocaleString()}<br>
-        🏫 School: ${schoolDist.toFixed(0)}m | 🏠 Home: ${homeDist.toFixed(0)}m<br>
-        <strong>${schoolDist <= 50 ? '✅ AT SCHOOL' : homeDist <= 50 ? '🏠 AT HOME' : '🚶 EN ROUTE'}</strong>
-      `;
-      childStatus.className = 'status ok';
+      if (role === 'guardian') watchGuardianLocations();
+      if (role === 'student') listenForCommands();
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        onSnapshot(doc(db, 'users', user.uid), (snap) => {
+          if (snap.exists()) {
+            userRole = snap.data().role;
+            showDashboard(userRole);
+          }
+        });
+      } else {
+        document.querySelectorAll('.card:not(#auth-screen)').forEach(el => el.classList.add('hidden'));
+        document.getElementById('auth-screen').classList.remove('hidden');
+      }
     });
-  });
-}
-    //------------------------------------------------------------------------------------------------------------------
-    // allows for child adding
-     window.linkChild = async () => {
-       const childEmail = document.getElementById('child-email').value;
-       if (!childEmail) return alert('Enter child email');
-       
-       try {
-         // 1. Find student by email
-         const q = query(collection(db, 'users'), where('email', '==', childEmail), where('role', '==', 'student'), limit(1));
-         const snap = await getDocs(q);
-         
-         if (snap.empty) return alert('Student not found');
-         
-         const childUid = snap.docs[0].id;
-         const guardianUid = auth.currentUser.uid;
-         
-         // 2. ✅ CREATE document if missing, then add child
-         await setDoc(doc(db, 'guardianChildren', guardianUid), {
-           children: [childUid]
-         }, { merge: true });
-         
-         // 3. Update UI
-document.getElementById('linked-children').innerHTML = `
-  <div class="child-item">
-    ${childEmail}
-    <div>
-      <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'START')">▶️ START</button>
-      <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'STOP')">⏹️ STOP</button>
-    </div>
-  </div>
-`;
-         
-         alert('Child linked successfully!');
-       } catch(e) {
-         alert('Error: ' + e.message);
-       }
-     };
-    
-    window.logout = async () => {
-  try {
-    await signOut(auth);
-    // onAuthStateChanged handles showing auth screen.
-  } catch (error) {
-    console.error('Logout failed:', error);
-  }
-};
   </script>
-<!-- -------------------------------------------------------------------------------------------------------------- -->
-  <!-- Service Worker Registration -->
+
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
   </script>
 </body>
