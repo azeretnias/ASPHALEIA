@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Asphaleia - Phase 3 ✅ GEOFENCES FIXED</title>
+  <title>Asphaleia - Phase 3 ✅ CHILD DISPLAY FIXED</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -21,46 +21,19 @@
     input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin: 8px 0; font-size: 16px; box-sizing: border-box; }
     .hidden { display: none; }
     .logout-btn { background: #ff4444; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 14px; position: absolute; top: 10px; right: 10px; }
-    .logout-btn:hover { background: #cc0000; }
     button:disabled { background: #ccc; cursor: not-allowed; }
     .status.tracking { background: #007bff; color: white; }
     .control-group { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
     .control-btn { flex: 1; padding: 12px; font-size: 16px; min-width: 100px; }
-    .child-item { background: #f8f9fa; padding: 12px; border-radius: 8px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
     #map { height: 350px; width: 100%; border-radius: 8px; margin: 16px 0; border: 2px solid #0066cc; }
-    
-    /* ✅ FIXED MARKER CSS */
-    .leaflet-marker-pane .child-location { 
-      background: #ff6b6b !important; 
-      border-radius: 50% !important; 
-      border: 4px solid white !important; 
-      box-shadow: 0 4px 16px rgba(255,107,107,0.8) !important; 
-      display: flex !important; 
-      align-items: center !important; 
-      justify-content: center !important; 
-      font-size: 24px !important; 
-      width: 48px !important; 
-      height: 48px !important;
-      z-index: 1000 !important;
-    }
-    
-    .location-permission { 
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-      color: white; 
-      padding: 20px; 
-      border-radius: 12px; 
-      text-align: center; 
-      margin: 16px 0;
-    }
+    .child-item { background: #e8f5e8; padding: 16px; border-radius: 8px; margin: 12px 0; border-left: 5px solid #28a745; }
+    .child-name { font-size: 18px; font-weight: bold; color: #155724; }
+    .location-permission { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; margin: 16px 0; }
     .gps-indicator { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; animation: pulse 2s infinite; }
-    .gps-ok { background: #00ff88; }
-    .gps-denied { background: #ff4444; }
+    .gps-ok { background: #00ff88; } .gps-denied { background: #ff4444; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    
     .geofence-section { background: #f0f8ff; padding: 16px; border-radius: 8px; margin: 16px 0; }
-    .geofence-list { max-height: 200px; overflow-y: auto; }
-    .geofence-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #e8f5e8; margin: 8px 0; border-radius: 8px; font-weight: bold; }
-    .geofence-item button { background: #ff4444; padding: 6px 12px; font-size: 14px; }
+    .geofence-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #e8f5e8; margin: 8px 0; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -68,7 +41,7 @@
     <!-- AUTH SCREEN -->
     <div id="auth-screen" class="card">
       <h1>🏦 Asphaleia</h1>
-      <p>Phase 3 ✅ GEOFENCES + MARKERS FIXED</p>
+      <p>✅ CHILD PROFILE DISPLAY FIXED</p>
       <input id="email" type="email" placeholder="Email">
       <input id="password" type="password" placeholder="Password">
       <select id="role">
@@ -86,12 +59,11 @@
       
       <div id="gps-status" class="location-permission">
         <div id="gps-indicator" class="gps-indicator gps-denied"></div>
-        <div id="gps-text">Click "Request GPS" to enable tracking</div>
-        <button onclick="requestLocationPermission()" style="margin-top:12px;padding:12px 24px;font-size:18px;">📍 Request GPS Permission</button>
+        <div id="gps-text">Click to enable GPS tracking</div>
+        <button onclick="requestLocationPermission()" style="margin-top:12px;padding:12px 24px;font-size:18px;">📍 Request GPS</button>
       </div>
       
-      <div id="student-status" class="status pending">Status: Waiting for GPS + guardian</div>
-      <div id="command-log"></div>
+      <div id="student-status" class="status pending">Status: Waiting...</div>
       <button onclick="startTracking()" id="start-tracking-btn" disabled>🚀 Start Tracking</button>
       <button onclick="stopTracking()" style="background:#ff4444;display:none;">⏹️ Stop</button>
       <div id="location-log"></div>
@@ -99,17 +71,23 @@
 
     <!-- GUARDIAN DASHBOARD -->
     <div id="guardian-dashboard" class="card hidden">
-      <h2>👨‍👧 Guardian View</h2>
+      <h2>👨‍👧 Guardian Dashboard</h2>
       <button onclick="logout()" class="logout-btn">🚪 Logout</button>
       
       <div id="map"></div>
       
+      <!-- 🔥 FIXED CHILD DISPLAY SECTION -->
+      <div id="linked-children-section" class="status pending" style="margin:16px 0;">
+        <h3>👦 Linked Children</h3>
+        <div id="linked-children">🔍 Searching for children...</div>
+      </div>
+      
       <div class="geofence-section">
-        <h3>🏫 Set School & Home (GREEN=School RED=Home)</h3>
+        <h3>🏫 School & Home Zones</h3>
         <div class="control-group">
           <select id="geofence-type">
-            <option value="school">🏫 School</option>
-            <option value="home">🏠 Home</option>
+            <option value="school">🏫 School (Green)</option>
+            <option value="home">🏠 Home (Red)</option>
           </select>
           <input id="geo-lat" placeholder="Latitude" value="25.2854">
           <input id="geo-lng" placeholder="Longitude" value="51.5310">
@@ -119,12 +97,11 @@
         <button onclick="useMyLocation()" class="control-btn" style="width:100%;margin-top:8px;">📍 Use My Location</button>
       </div>
 
-      <div id="saved-geofences" class="geofence-list"></div>
+      <div id="saved-geofences"></div>
       
-      <div id="child-status" class="status pending">Waiting for child...</div>
-      <input id="child-email" placeholder="Child's email" style="margin:16px 0;">
+      <div id="child-status" class="status pending">Waiting for child location...</div>
+      <input id="child-email" placeholder="Child's email">
       <button onclick="linkChild()" class="control-btn" style="width:100%;">👦 Link Child</button>
-      <div id="linked-children"></div>
     </div>
   </div>
 
@@ -146,25 +123,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    let map, childMarker, watchId, customGeofences = {}, geofenceLayers = [], locationPermissionGranted = false;
-
-    // ✅ FIXED MAP INIT WITH GEOFENCES
-    function initMap() {
-      map = L.map('map').setView([25.2854, 51.5310], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
-      
-      // Add default geofences if none saved
-      if (Object.keys(customGeofences).length === 0) {
-        customGeofences = {
-          school: { lat: 25.2854, lng: 51.5310, radius: 75, name: 'School', type: 'school' },
-          home: { lat: 25.3548, lng: 51.1839, radius: 75, name: 'Home', type: 'home' }
-        };
-        renderGeofencesOnMap();
-        renderGeofenceList();
-      }
-    }
+    let map, childMarker, watchId, customGeofences = {}, geofenceLayers = [], locationPermissionGranted = false, linkedChildren = [];
 
     function haversineDistance(lat1, lng1, lat2, lng2) {
       const R = 6371000;
@@ -175,24 +134,127 @@
       return R * c;
     }
 
-    // ✅ FIXED GEOFENCE RENDERING
+    function initMap() {
+      map = L.map('map').setView([25.2854, 51.5310], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    }
+
+    // 🔥 FIXED: Real-time child display + profile lookup
+    function watchGuardianChildren() {
+      const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
+      onSnapshot(guardianDoc, async (snap) => {
+        if (!snap.exists()) {
+          document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked. Use "Link Child" below.</div>';
+          return;
+        }
+        
+        linkedChildren = snap.data().children || [];
+        console.log('🔍 Found children UIDs:', linkedChildren);
+        
+        if (linkedChildren.length === 0) {
+          document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked.</div>';
+          return;
+        }
+
+        // ✅ FIXED: Show child profiles with names
+        let childrenHTML = '';
+        for (let childUid of linkedChildren) {
+          try {
+            const childDoc = await getDoc(doc(db, 'users', childUid));
+            const childData = childDoc.data();
+            const childEmail = childData?.email || 'Unknown';
+            
+            childrenHTML += `
+              <div class="child-item">
+                <div>
+                  <div class="child-name">👦 ${childEmail}</div>
+                  <div style="font-size:14px;color:#666;">UID: ${childUid.slice(0,8)}...</div>
+                </div>
+                <div class="control-group">
+                  <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'START')">▶️ START</button>
+                  <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'STOP')" style="background:#ff4444;">⏹️ STOP</button>
+                </div>
+              </div>
+            `;
+          } catch(e) {
+            childrenHTML += `<div class="child-item">👦 Child ${childUid.slice(0,8)}... (loading profile)</div>`;
+          }
+        }
+        
+        document.getElementById('linked-children').innerHTML = childrenHTML || 'Loading child profiles...';
+        document.getElementById('linked-children-section').className = 'status ok';
+        
+        // Watch first child's location
+        if (linkedChildren[0]) watchChildLocation(linkedChildren[0]);
+      }, (error) => {
+        console.error('Child watch error:', error);
+        document.getElementById('linked-children').innerHTML = 'Error loading children';
+      });
+    }
+
+    async function watchChildLocation(childUid) {
+      const q = query(collection(db, 'locations'), 
+        where('uid', '==', childUid), 
+        orderBy('timestamp', 'desc'), 
+        limit(1)
+      );
+      
+      onSnapshot(q, (snap) => {
+        if (snap.empty) {
+          document.getElementById('child-status').textContent = '👦 No location data yet';
+          return;
+        }
+        
+        const data = snap.docs[0].data();
+        const lat = data.lat, lng = data.lng;
+        
+        if (!childMarker) {
+          childMarker = L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: 'child-location', html: '👦',
+              iconSize: [48, 48], iconAnchor: [24, 48]
+            })
+          }).addTo(map).bindPopup('Child Location');
+        } else {
+          childMarker.setLatLng([lat, lng]);
+        }
+        
+        map.setView([lat, lng], 16);
+        
+        let status = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        Object.values(customGeofences).forEach(fence => {
+          const dist = haversineDistance(lat, lng, fence.lat, fence.lng);
+          status += `<br>${fence.name}: ${dist.toFixed(0)}m`;
+        });
+        document.getElementById('child-status').innerHTML = status;
+        document.getElementById('child-status').className = 'status ok';
+      });
+    }
+
+    function loadGeofences() {
+      const saved = localStorage.getItem(`geofences_${auth.currentUser?.uid || 'default'}`);
+      if (saved) customGeofences = JSON.parse(saved);
+      else {
+        customGeofences = {
+          school: { lat: 25.2854, lng: 51.5310, radius: 75, name: 'School', type: 'school' },
+          home: { lat: 25.3548, lng: 51.1839, radius: 75, name: 'Home', type: 'home' }
+        };
+      }
+      renderGeofencesOnMap();
+      renderGeofenceList();
+    }
+
     function renderGeofencesOnMap() {
-      clearGeofenceLayers();
+      if (!map) return;
+      geofenceLayers.forEach(layer => map.removeLayer(layer));
+      geofenceLayers = [];
       Object.entries(customGeofences).forEach(([key, fence]) => {
         const color = key === 'school' ? '#00ff00' : '#ff4444';
         const layer = L.circle([fence.lat, fence.lng], {
-          color: color,
-          fillColor: color,
-          fillOpacity: 0.4,
-          weight: 3,
-          radius: fence.radius
+          color, fillColor: color, fillOpacity: 0.4, weight: 4, radius: fence.radius
         }).addTo(map).bindPopup(`${fence.name} (${fence.radius}m)`);
         geofenceLayers.push(layer);
-        console.log('🟢 GEOFENCE ADDED:', fence.name, fence.lat, fence.lng);
       });
-      if (Object.keys(customGeofences).length > 0) {
-        map.fitBounds(geofenceLayers.map(l => l.getBounds()));
-      }
     }
 
     function renderGeofenceList() {
@@ -200,43 +262,12 @@
         Object.entries(customGeofences).map(([key, fence]) => `
           <div class="geofence-item">
             <span>📍 ${fence.name}: ${fence.lat.toFixed(4)}, ${fence.lng.toFixed(4)} (${fence.radius}m)</span>
-            <button onclick="deleteGeofence('${key}')">🗑️ Delete</button>
+            <button onclick="deleteGeofence('${key}')" style="background:#ff4444;padding:6px 12px;">🗑️</button>
           </div>
-        `).join('') || '<div style="color:#666;padding:20px;">No geofences - click SAVE ZONE</div>';
+        `).join('') || '<div style="color:#666;">No geofences saved</div>';
     }
 
-    function clearGeofenceLayers() {
-      geofenceLayers.forEach(layer => map?.removeLayer(layer));
-      geofenceLayers = [];
-    }
-
-    window.requestLocationPermission = () => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          locationPermissionGranted = true;
-          document.getElementById('gps-indicator').className = 'gps-indicator gps-ok';
-          document.getElementById('gps-text').textContent = `✅ GPS Ready: ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
-          document.getElementById('start-tracking-btn').disabled = false;
-        },
-        (err) => {
-          document.getElementById('gps-text').textContent = `❌ GPS Denied: ${err.message}`;
-        },
-        { enableHighAccuracy: true, timeout: 15000 }
-      );
-    };
-
-    window.useMyLocation = () => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          document.getElementById('geo-lat').value = pos.coords.latitude.toFixed(6);
-          document.getElementById('geo-lng').value = pos.coords.longitude.toFixed(6);
-          alert('📍 Location set!');
-        },
-        () => alert('Location denied')
-      );
-    };
-
-    window.saveCustomGeofence = async () => {
+    window.saveCustomGeofence = () => {
       const type = document.getElementById('geofence-type').value;
       const lat = parseFloat(document.getElementById('geo-lat').value);
       const lng = parseFloat(document.getElementById('geo-lng').value);
@@ -245,37 +276,56 @@
       if (isNaN(lat) || isNaN(lng) || radius < 10) return alert('Invalid coordinates');
       
       customGeofences[type] = { lat, lng, radius, name: type === 'school' ? 'School' : 'Home', type };
-      
-      await setDoc(doc(db, 'guardianGeofences', auth.currentUser.uid), { geofences: customGeofences }, { merge: true });
+      localStorage.setItem(`geofences_${auth.currentUser?.uid || 'default'}`, JSON.stringify(customGeofences));
       renderGeofencesOnMap();
       renderGeofenceList();
-      alert(`✅ ${type.toUpperCase()} zone saved!`);
+      alert(`✅ ${type.toUpperCase()} saved!`);
     };
 
-    window.deleteGeofence = async (type) => {
+    window.deleteGeofence = (type) => {
       delete customGeofences[type];
-      await setDoc(doc(db, 'guardianGeofences', auth.currentUser.uid), { geofences: customGeofences }, { merge: true });
+      localStorage.setItem(`geofences_${auth.currentUser?.uid || 'default'}`, JSON.stringify(customGeofences));
       renderGeofencesOnMap();
       renderGeofenceList();
+    };
+
+    window.requestLocationPermission = () => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          locationPermissionGranted = true;
+          document.getElementById('gps-indicator').className = 'gps-indicator gps-ok';
+          document.getElementById('gps-text').innerHTML = `✅ GPS Ready: ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+          document.getElementById('start-tracking-btn').disabled = false;
+        },
+        (err) => { document.getElementById('gps-text').innerHTML = `❌ ${err.message}`; },
+        { enableHighAccuracy: true, timeout: 15000 }
+      );
+    };
+
+    window.useMyLocation = () => {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        document.getElementById('geo-lat').value = pos.coords.latitude.toFixed(6);
+        document.getElementById('geo-lng').value = pos.coords.longitude.toFixed(6);
+        alert('📍 Location set!');
+      });
     };
 
     window.startTracking = async () => {
-      if (!locationPermissionGranted || watchId) return alert('GPS not ready or already tracking');
-      
+      if (!locationPermissionGranted) return alert('Request GPS first!');
       watchId = navigator.geolocation.watchPosition(async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
-        await addDoc(collection(db, 'locations'), { uid: auth.currentUser.uid, lat, lng, timestamp: serverTimestamp() });
+        try {
+          await addDoc(collection(db, 'locations'), { 
+            uid: auth.currentUser.uid, lat, lng, timestamp: serverTimestamp() 
+          });
+        } catch(e) { console.log('Location save failed:', e); }
         
-        // Check all geofences
         Object.values(customGeofences).forEach(fence => {
-          const dist = haversineDistance(lat, lng, fence.lat, fence.lng);
-          if (dist <= fence.radius) {
-            // Entered zone
-            alert(`✅ ENTERED ${fence.name}! (${dist.toFixed(0)}m)`);
+          if (haversineDistance(lat, lng, fence.lat, fence.lng) <= fence.radius) {
+            alert(`✅ ENTERED ${fence.name}!`);
           }
         });
       }, console.error, { enableHighAccuracy: true });
-      
       document.getElementById('student-status').textContent = '🛰️ LIVE TRACKING';
       document.getElementById('student-status').className = 'status tracking';
     };
@@ -286,7 +336,6 @@
       document.getElementById('student-status').textContent = 'Stopped';
     };
 
-    // Auth handlers
     window.register = async () => {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
@@ -295,7 +344,6 @@
       await setDoc(doc(db, 'users', userCred.user.uid), { email, role });
       if (role === 'guardian') {
         await setDoc(doc(db, 'guardianChildren', userCred.user.uid), { children: [] }, { merge: true });
-        await setDoc(doc(db, 'guardianGeofences', userCred.user.uid), { geofences: {} }, { merge: true });
       }
       alert('✅ Registered!');
     };
@@ -306,65 +354,72 @@
       await signInWithEmailAndPassword(auth, email, password);
     };
 
+    // 🔥 FIXED: Child linking with proper error handling
     window.linkChild = async () => {
       const email = document.getElementById('child-email').value;
-      const q = query(collection(db, 'users'), where('email', '==', email), where('role', '==', 'student'), limit(1));
-      const snap = await getDocs(q);
-      if (snap.empty) return alert('Student not found');
+      if (!email) return alert('Enter child email');
       
-      const childUid = snap.docs[0].id;
-      await setDoc(doc(db, 'guardianChildren', auth.currentUser.uid), { children: [childUid] });
-      alert('✅ Child linked!');
+      try {
+        const q = query(collection(db, 'users'), where('email', '==', email), where('role', '==', 'student'), limit(1));
+        const snap = await getDocs(q);
+        if (snap.empty) return alert('❌ Student account not found');
+        
+        const childUid = snap.docs[0].id;
+        await setDoc(doc(db, 'guardianChildren', auth.currentUser.uid), { 
+          children: [childUid] 
+        }, { merge: true });
+        
+        alert(`✅ ${email} linked! Refresh guardian dashboard.`);
+      } catch(e) {
+        alert('❌ Link failed: ' + e.message);
+      }
     };
 
-    async function watchGuardianLocations() {
-      initMap();
-      
-      const snap = await getDoc(doc(db, 'guardianGeofences', auth.currentUser.uid));
-      if (snap.exists()) customGeofences = snap.data().geofences || {};
-      renderGeofencesOnMap();
-      renderGeofenceList();
-      
-      const q = query(collection(db, 'guardianChildren'), where('guardianUid', '==', auth.currentUser.uid));
-      onSnapshot(q, async (snap) => {
-        if (snap.empty) return;
-        const childUid = snap.docs[0].data().children?.[0];
-        if (!childUid) return;
-        
-        const locQ = query(collection(db, 'locations'), where('uid', '==', childUid), orderBy('timestamp', 'desc'), limit(1));
-        onSnapshot(locQ, (locSnap) => {
-          if (locSnap.empty) return;
-          const data = locSnap.docs[0].data();
-          const lat = data.lat, lng = data.lng;
-          
-          if (childMarker) childMarker.setLatLng([lat, lng]);
-          else {
-            childMarker = L.marker([lat, lng], {
-              icon: L.divIcon({
-                className: 'child-location',
-                html: '👦',
-                iconSize: [48, 48],
-                iconAnchor: [24, 48]
-              })
-            }).addTo(map);
-          }
-          map.setView([lat, lng], 16);
+    window.sendTrackingCommand = async (childUid, command) => {
+      try {
+        await setDoc(doc(db, 'trackingCommands', childUid), {
+          command, guardianUid: auth.currentUser.uid, timestamp: serverTimestamp()
         });
-      });
+        alert(`${command} command sent to ${childUid.slice(0,8)}...`);
+      } catch(e) {
+        alert('Command failed');
+      }
+    };
+
+    window.logout = () => signOut(auth);
+
+    // 🔥 MAIN DASHBOARD FUNCTION - FIXED
+    async function watchGuardianDashboard() {
+      initMap();
+      loadGeofences();
+      watchGuardianChildren(); // ✅ This shows linked children + profiles
     }
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        const role = snap.data()?.role;
+        const userSnap = await getDoc(doc(db, 'users', user.uid));
+        const role = userSnap.data()?.role;
+        
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById(role === 'guardian' ? 'guardian-dashboard' : 'student-dashboard').classList.remove('hidden');
-        if (role === 'guardian') watchGuardianLocations();
+        
+        if (role === 'guardian') {
+          watchGuardianDashboard();
+        }
       } else {
         document.querySelectorAll('[id$="-dashboard"]').forEach(el => el.classList.add('hidden'));
         document.getElementById('auth-screen').classList.remove('hidden');
       }
     });
   </script>
+
+  <style>
+    .leaflet-marker-pane .child-location { 
+      background: #ff6b6b !important; border-radius: 50% !important; 
+      border: 4px solid white !important; box-shadow: 0 4px 16px rgba(255,107,107,0.8) !important; 
+      display: flex !important; align-items: center !important; justify-content: center !important; 
+      font-size: 24px !important; width: 48px !important; height: 48px !important; z-index: 1000 !important;
+    }
+  </style>
 </body>
 </html>
