@@ -7,6 +7,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Asphaleia - Phase 3</title>
   <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, sans-serif; background: #f5f5f5; }
@@ -37,6 +39,12 @@ button:disabled { background: #ccc; cursor: not-allowed; }
 .child-item { 
   background: #f8f9fa; padding: 12px; border-radius: 8px; margin: 8px 0;
   display: flex; justify-content: space-between; align-items: center;
+}
+    #map { border: 2px solid #0066cc; margin: 16px 0; }
+.child-location { 
+  background: #ff6b6b !important; 
+  border-radius: 50%; 
+  border: 3px solid white !important;
 }
   </style>
 </head>
@@ -75,12 +83,18 @@ button:disabled { background: #ccc; cursor: not-allowed; }
       <div style="position: absolute; top: 10px; right: 10px;">
   <button onclick="logout()" class="logout-btn">🚪 Logout</button>
 </div>
+        <!-- 🗺️ LIVE MAP (300px height) -->
+        <div id="map" style="height: 300px; width: 100%; border-radius: 8px; margin: 16px 0;"></div>
+      
       <div id="child-status">Waiting for child data...</div>
       <!-- This is contained in the guardian dashboard card. -->
-<div style="margin: 16px 0;">
-  <input id="child-email" placeholder="Child's email (student@test.com)" style="width:70%; margin-right:10px;">
-  <button onclick="linkChild()" style="width:28%;">Link Child</button>
-</div>
+      
+ <!-- Link Child Input -->
+  <div style="margin: 16px 0;">
+    <input id="child-email" placeholder="Child's email (student@test.com)" style="width:70%; margin-right:10px;">
+    <button onclick="linkChild()" style="width:28%;">Link Child</button>
+  </div>
+      
 <div id="linked-children"></div>
 
     </div>
@@ -105,13 +119,17 @@ button:disabled { background: #ccc; cursor: not-allowed; }
 
     let userRole = 'student'; // Default, set during register
 const GEOFENCES = {
-  school: { lat: 25.2854, lng: 51.5310, radius: 50, name: 'School' },  // ✅ CORRECT (meters)
-  home: { lat: 25.3548, lng: 51.1839, radius: 50, name: 'Home' }       // ✅ CORRECT (meters)
+  school: { lat: 25.2854, lng: 51.5310, radius: 50, name: 'School' },
+  home: { lat: 25.3548, lng: 51.1839, radius: 50, name: 'Home' }
 };
 
-  let watchId = null;
-  let consecutiveInside = 0;
-  let lastStatus = 'outside';  // ✅ Initialize properly
+// 🔥 MAP VARIABLES (ADD THESE 2 LINES)
+let map = null;
+let childMarker = null;
+
+let watchId = null;
+let consecutiveInside = 0;
+let lastStatus = 'outside';
 //------------------------------------------------------------------------------------------------------------------
     // haversine function.
   function haversineDistance(lat1, lng1, lat2, lng2) {
@@ -272,20 +290,37 @@ onAuthStateChanged(auth, async (user) => {
       }
     }
      function watchGuardianLocations() {
+  // Initialize map once
+  if (!map) {
+    map = L.map('map').setView([25.2854, 51.5310], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // School geofence (green circle)
+    L.circle([GEOFENCES.school.lat, GEOFENCES.school.lng], {
+      color: '#00ff00', fillColor: '#00ff00', fillOpacity: 0.2, radius: 50
+    }).addTo(map).bindPopup('🏫 School (50m)');
+    
+    // Home geofence (red circle)  
+    L.circle([GEOFENCES.home.lat, GEOFENCES.home.lng], {
+      color: '#ff4444', fillColor: '#ff4444', fillOpacity: 0.2, radius: 50
+    }).addTo(map).bindPopup('🏠 Home (50m)');
+  }
+
   const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
-  onSnapshot(guardianDoc, (snap) => {        // ✅ REMOVED 'async'
+  onSnapshot(guardianDoc, (snap) => {
     const childUids = snap.data()?.children || [];
     
     if (childUids.length === 0) {
-      document.getElementById('child-status').textContent = 'No children linked';
+      document.getElementById('child-status').innerHTML = 'No children linked';
       document.getElementById('child-status').className = 'status pending';
       return;
     }
     
-    // 👇 Only watch LINKED children's locations
     const q = query(
       collection(db, 'locations'), 
-      where('uid', 'in', childUids.slice(0, 10)), // Firestore 'in' limit=10
+      where('uid', 'in', childUids.slice(0, 10)),
       orderBy('timestamp', 'desc'), 
       limit(1)
     );
@@ -293,26 +328,46 @@ onAuthStateChanged(auth, async (user) => {
     onSnapshot(q, (snap) => {
       const childStatus = document.getElementById('child-status');
       if (snap.empty) {
-        childStatus.textContent = 'Linked children not tracking';
+        childStatus.innerHTML = 'Waiting for child location...';
         childStatus.className = 'status pending';
         return;
       }
       
       const latest = snap.docs[0].data();
-      const schoolDist = haversineDistance(
-        latest.lat, latest.lng, 
-        GEOFENCES.school.lat, GEOFENCES.school.lng
-      );
+      const lat = latest.lat;
+      const lng = latest.lng;
+      
+      // 🔥 LIVE MOVING CHILD MARKER
+      if (!childMarker) {
+        childMarker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            className: 'child-location',
+            html: '👦<div style="font-size:10px;">Child</div>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+          })
+        }).addTo(map);
+      } else {
+        childMarker.setLatLng([lat, lng]);
+      }
+      
+      // Auto zoom to child
+      map.setView([lat, lng], 15);
+      
+      // Distance calculations
+      const schoolDist = haversineDistance(lat, lng, GEOFENCES.school.lat, GEOFENCES.school.lng);
+      const homeDist = haversineDistance(lat, lng, GEOFENCES.home.lat, GEOFENCES.home.lng);
       
       childStatus.innerHTML = `
-        📍 Child: ${latest.lat.toFixed(4)}, ${latest.lng.toFixed(4)}<br>
+        📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}<br>
         🕒 ${new Date(latest.timestamp).toLocaleString()}<br>
-        <strong>${schoolDist <= 50 ? '✅ AT SCHOOL' : '🚶 En route'}</strong>
+        🏫 School: ${schoolDist.toFixed(0)}m | 🏠 Home: ${homeDist.toFixed(0)}m<br>
+        <strong>${schoolDist <= 50 ? '✅ AT SCHOOL' : homeDist <= 50 ? '🏠 AT HOME' : '🚶 EN ROUTE'}</strong>
       `;
       childStatus.className = 'status ok';
-    });  // ✅ First onSnapshot
-  });    // ✅ Second onSnapshot
-}        // ✅ watchGuardianLocations
+    });
+  });
+}
     //------------------------------------------------------------------------------------------------------------------
     // allows for child adding
      window.linkChild = async () => {
