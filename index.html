@@ -26,7 +26,11 @@
       <h1>🏦 Asphaleia</h1>
       <p>Student Safety Prototype - Phase 2</p>
       <input id="email" type="email" placeholder="Email">
-      <input id="password" type="password" placeholder="Password">
+            <input id="password" type="password" placeholder="Password">
+      <select id="role" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin: 8px 0; font-size: 16px;">
+        <option value="student">👨‍🎓 Student</option>
+        <option value="guardian">👨‍👧 Guardian</option>
+      </select>
       <button onclick="register()">Register</button>
       <button onclick="login()">Login</button>
     </div>
@@ -53,13 +57,14 @@
     import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
     // YOUR FIREBASE CONFIG FROM PHASE 1
-    const firebaseConfig = window.firebaseConfig || {
-      // Paste from Firebase Console > Project Settings > Your apps
-      apiKey: "xxx",
-      authDomain: "xxx",
-      projectId: "xxx"
-    };
-
+   const firebaseConfig = {
+  apiKey: "AIzaSyDZgu8s-nebRP02myIna8FT9SvrKl9DVms",
+  authDomain: "asphaleia-project-test.firebaseapp.com",
+  projectId: "asphaleia-project-test",
+  storageBucket: "asphaleia-project-test.firebasestorage.app",
+  messagingSenderId: "325392129267",
+  appId: "1:325392129267:web:610966cf9d8b1cb46c2b86"
+};
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -67,26 +72,32 @@
     let userRole = 'student'; // Default, set during register
 
     // Auth Functions
-    window.register = async () => {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
-          email, role: userRole, // Switch to 'guardian' for parent accounts
-          created: new Date().toISOString()
-        });
-        alert('Registered! Refresh to see dashboard.');
-      } catch (e) { alert(e.message); }
-    };
+window.register = async () => {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  userRole = document.getElementById('role').value;
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await setDoc(doc(db, 'users', userCredential.user.uid), {
+      email, 
+      role: userRole, 
+      created: new Date().toISOString()
+    });
+    alert('Registered as ' + (userRole === 'student' ? 'Student' : 'Guardian') + '! Refresh.');
+  } catch (e) { 
+    alert(e.message); 
+  }
+};
 
-    window.login = async () => {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-      } catch (e) { alert(e.message); }
-    };
+window.login = async () => {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (e) { 
+    alert(e.message); 
+  }
+};
 
     // Role-based Dashboards
     onAuthStateChanged(auth, async (user) => {
