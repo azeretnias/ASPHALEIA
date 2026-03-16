@@ -29,7 +29,7 @@
     .child-item { background: #e8f5e8; padding: 16px; border-radius: 8px; margin: 12px 0; border-left: 5px solid #28a745; }
     .child-name { font-size: 18px; font-weight: bold; color: #155724; }
     .location-permission { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; margin: 16px 0; }
-    .gps-indicator { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; animation: pulse 2s infinite; }
+    .gps-indicator { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; animation: pulse 2s infinite; display: inline-block; vertical-align: middle; }
     .gps-ok { background: #00ff88; } .gps-denied { background: #ff4444; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .geofence-section { background: #f0f8ff; padding: 16px; border-radius: 8px; margin: 16px 0; }
@@ -136,6 +136,7 @@
     let map, childMarker, customGeofences = {}, geofenceLayers = [];
     let locationPermissionGranted = false, linkedChildren = [];
     let trackingInterval = null; // 🔥 FIXED: interval tracking
+    let commandUnsubscribe = null; // 🔥 FIX: command listener cleanup
 
     // 🔥 DOM ELEMENTS
     const locationLogEl = document.getElementById('location-log');
@@ -245,9 +246,15 @@
       });
     }
 
-    // 🔥 GEOFENCE FUNCTIONS (UNCHANGED)
+    // 🔥 GEOFENCE FUNCTIONS (UPDATED WITH AUTH NULL CHECK)
     function loadGeofences() {
-      const saved = localStorage.getItem(`geofences_${auth.currentUser?.uid || 'default'}`);
+      if (!auth.currentUser) {
+        customGeofences = {};
+        renderGeofenceList();
+        return;
+      }
+
+      const saved = localStorage.getItem(`geofences_${auth.currentUser.uid}`);
       if (saved) customGeofences = JSON.parse(saved);
       else {
         customGeofences = {
@@ -334,7 +341,7 @@
       studentStatusEl.className = 'status tracking';
       
       startBtnEl.disabled = true;
-      stopBtnEl.style.display = 'block';
+      stopBtnEl.style.display = 'inline-block'; // 🔧 FIX 2: better layout
 
       // Start immediately, then every 5 seconds
       pollAndSaveLocation();
@@ -354,10 +361,12 @@
       stopBtnEl.style.display = 'none';
     };
 
-    // 🔥 NEW: Student listens for guardian START/STOP commands
+    // 🔥 NEW: Student listens for guardian START/STOP commands (with cleanup)
     function watchStudentTrackingCommands(userUid) {
+      if (commandUnsubscribe) commandUnsubscribe(); // 🔧 FIX 3: prevent stacking
+
       const cmdDocRef = doc(db, 'trackingCommands', userUid);
-      onSnapshot(cmdDocRef, (snap) => {
+      commandUnsubscribe = onSnapshot(cmdDocRef, (snap) => {
         if (!snap.exists()) return;
         
         const data = snap.data();
@@ -481,6 +490,10 @@
         clearInterval(trackingInterval);
         trackingInterval = null;
       }
+      if (commandUnsubscribe) {
+        commandUnsubscribe();
+        commandUnsubscribe = null;
+      }
       signOut(auth);
     };
 
@@ -510,6 +523,10 @@
         if (trackingInterval) {
           clearInterval(trackingInterval);
           trackingInterval = null;
+        }
+        if (commandUnsubscribe) {
+          commandUnsubscribe();
+          commandUnsubscribe = null;
         }
       }
     });
