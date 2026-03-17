@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Asphaleia - Phase 3 ✅ ALL GPS FIXES APPLIED</title>
+  <title>Asphaleia - Phase 3 ✅ WIP</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -133,10 +133,12 @@
     const db = getFirestore(app);
 
     // 🔥 ALL GLOBAL STATE
-    let map, childMarker, customGeofences = {}, geofenceLayers = [];
-    let locationPermissionGranted = false, linkedChildren = [];
-    let trackingInterval = null; // 🔥 FIXED: interval tracking
-    let commandUnsubscribe = null; // 🔥 FIX: command listener cleanup
+   let map, childMarker, customGeofences = {}, geofenceLayers = [];
+   let locationPermissionGranted = false, linkedChildren = [];
+   let trackingInterval = null;
+   let commandUnsubscribe = null;
+   let childMarkers = {};
+   let childListeners = {};
 
     // 🔥 DOM ELEMENTS
     const locationLogEl = document.getElementById('location-log');
@@ -169,82 +171,98 @@
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     }
 
-    // 🔥 GUARDIAN FUNCTIONS (UNCHANGED)
-    function watchGuardianChildren() {
-      const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
-      onSnapshot(guardianDoc, async (snap) => {
-        if (!snap.exists()) {
-          document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked. Use "Link Child" below.</div>';
-          return;
-        }
-        
-        linkedChildren = snap.data().children || [];
-        if (linkedChildren.length === 0) {
-          document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked.</div>';
-          return;
-        }
-
-        let childrenHTML = '';
-        for (let childUid of linkedChildren) {
-          try {
-            const childDoc = await getDoc(doc(db, 'users', childUid));
-            const childData = childDoc.data();
-            const childEmail = childData?.email || 'Unknown';
-            
-            childrenHTML += `
-              <div class="child-item">
-                <div>
-                  <div class="child-name">👦 ${childEmail}</div>
-                  <div style="font-size:14px;color:#666;">UID: ${childUid.slice(0,8)}...</div>
-                </div>
-                <div class="control-group">
-                  <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'START')">▶️ START</button>
-                  <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'STOP')" style="background:#ff4444;">⏹️ STOP</button>
-                </div>
-              </div>
-            `;
-          } catch(e) {
-            childrenHTML += `<div class="child-item">👦 Child ${childUid.slice(0,8)}... (loading profile)</div>`;
-          }
-        }
-        
-        document.getElementById('linked-children').innerHTML = childrenHTML;
-        document.getElementById('linked-children-section').className = 'status ok';
-        
-        if (linkedChildren[0]) watchChildLocation(linkedChildren[0]);
-      });
+// 🔥 REPLACE: watchGuardianChildren() - watches ALL children
+function watchGuardianChildren() {
+  const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
+  onSnapshot(guardianDoc, async (snap) => {
+    if (!snap.exists()) {
+      document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked.</div>';
+      return;
+    }
+    
+    linkedChildren = snap.data().children || [];
+    if (linkedChildren.length === 0) {
+      document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked.</div>';
+      return;
     }
 
-    async function watchChildLocation(childUid) {
-      const q = query(collection(db, 'locations'), where('uid', '==', childUid), orderBy('timestamp', 'desc'), limit(1));
-      onSnapshot(q, (snap) => {
-        if (snap.empty) {
-          document.getElementById('child-status').textContent = '👦 No location data yet';
-          return;
-        }
+    let childrenHTML = '';
+    for (let childUid of linkedChildren) {
+      try {
+        const childDoc = await getDoc(doc(db, 'users', childUid));
+        const childData = childDoc.data();
+        const childEmail = childData?.email || 'Unknown';
         
-        const data = snap.docs[0].data();
-        const lat = data.lat, lng = data.lng;
-        
-        if (!childMarker) {
-          childMarker = L.marker([lat, lng], {
-            icon: L.divIcon({ className: 'child-location', html: '👦', iconSize: [48, 48], iconAnchor: [24, 48] })
-          }).addTo(map).bindPopup('Child Location');
-        } else {
-          childMarker.setLatLng([lat, lng]);
-        }
-        
-        map.setView([lat, lng], 16);
-        
-        let status = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        Object.values(customGeofences).forEach(fence => {
-          const dist = haversineDistance(lat, lng, fence.lat, fence.lng);
-          status += `<br>${fence.name}: ${dist.toFixed(0)}m`;
-        });
-        document.getElementById('child-status').innerHTML = status;
-        document.getElementById('child-status').className = 'status ok';
-      });
+        childrenHTML += `
+          <div class="child-item">
+            <div>
+              <div class="child-name">👦 ${childEmail}</div>
+              <div style="font-size:14px;color:#666;">UID: ${childUid.slice(0,8)}...</div>
+            </div>
+            <div class="control-group">
+              <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'START')">▶️ START</button>
+              <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'STOP')" style="background:#ff4444;">⏹️ STOP</button>
+            </div>
+          </div>
+        `;
+      } catch(e) {
+        childrenHTML += `<div class="child-item">👦 Child ${childUid.slice(0,8)}... (loading)</div>`;
+      }
     }
+    
+   document.getElementById('linked-children').innerHTML = childrenHTML;
+document.getElementById('linked-children-section').className = 'status ok';
+    
+    // 🔥 FIXED: Clean ALL listeners first, then recreate
+   Object.values(childListeners).forEach(unsub => unsub());
+   childListeners = {};
+   linkedChildren.forEach(childUid => watchChildLocation(childUid)); 
+  });
+}
+    // 🔥 REPLACE: watchChildLocation() - per-child marker management
+async function watchChildLocation(childUid) {
+  // Skip if already watching
+  if (childListeners[childUid]) return;
+  
+  const q = query(collection(db, 'locations'), where('uid', '==', childUid), orderBy('timestamp', 'desc'), limit(1));
+  childListeners[childUid] = onSnapshot(q, (snap) => {
+    if (snap.empty) {
+      document.getElementById('child-status').innerHTML = `👦 ${childUid.slice(0,8)}... No location data`;
+      return;
+    }
+    
+    const data = snap.docs[0].data();
+    const lat = data.lat, lng = data.lng;
+    
+    // 🔥 PER-CHILD MARKER: Create if doesn't exist
+    if (!childMarkers[childUid]) {
+      childMarkers[childUid] = L.marker([lat, lng], {
+        icon: L.divIcon({ 
+          className: 'child-location', 
+          html: `👦<div style="font-size:10px;">${childUid.slice(0,6)}</div>`, 
+          iconSize: [48, 56], 
+          iconAnchor: [24, 56] 
+        })
+      }).addTo(map).bindPopup(`Child ${childUid.slice(0,8)}...`);
+    } else {
+      // 🔥 UPDATE EXISTING MARKER POSITION (fixes static bug)
+      childMarkers[childUid].setLatLng([lat, lng]);
+    }
+    
+    // Auto-center on first child or most recent update
+    if (linkedChildren[0] === childUid) {
+      map.setView([lat, lng], 16);
+    }
+    
+    let status = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    Object.values(customGeofences).forEach(fence => {
+      const dist = haversineDistance(lat, lng, fence.lat, fence.lng);
+      status += `<br>${fence.name}: ${dist.toFixed(0)}m`;
+    });
+    document.getElementById('child-status').innerHTML = status;
+    document.getElementById('child-status').className = 'status ok';
+  });
+}
 
     // 🔥 GEOFENCE FUNCTIONS (UPDATED WITH AUTH NULL CHECK)
     function loadGeofences() {
@@ -486,16 +504,21 @@
     };
 
     window.logout = () => {
-      if (trackingInterval) {
-        clearInterval(trackingInterval);
-        trackingInterval = null;
-      }
-      if (commandUnsubscribe) {
-        commandUnsubscribe();
-        commandUnsubscribe = null;
-      }
-      signOut(auth);
-    };
+  // REQUIRED CLEANUP - prevents Firestore quota exhaustion
+  Object.values(childListeners).forEach(unsub => unsub());
+  Object.values(childMarkers).forEach(marker => map?.removeLayer(marker));
+  childMarkers = {}; childListeners = {};
+  
+  if (trackingInterval) {
+    clearInterval(trackingInterval);
+    trackingInterval = null;
+  }
+  if (commandUnsubscribe) {
+    commandUnsubscribe();
+    commandUnsubscribe = null;
+  }
+  signOut(auth);
+};
 
     async function watchGuardianDashboard() {
       initMap();
