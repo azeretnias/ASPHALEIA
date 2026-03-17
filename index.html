@@ -139,6 +139,9 @@
    let commandUnsubscribe = null;
    let childMarkers = {};
    let childListeners = {};
+   let lastLat = null;
+   let lastLng = null;
+
 
     // 🔥 DOM ELEMENTS
     const locationLogEl = document.getElementById('location-log');
@@ -309,39 +312,59 @@ async function watchChildLocation(childUid) {
 
     // 🔥 FIXED GPS TRACKING (getCurrentPosition + 5s interval)
     async function pollAndSaveLocation() {
-      if (!auth.currentUser) {
-        appendLocationLog('⚠️ No user logged in');
+  if (!auth.currentUser) {
+    appendLocationLog('⚠️ No user logged in');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+
+      // Distance from last logged point
+      const moved = (lastLat === null || lastLng === null)
+        ? Infinity
+        : haversineDistance(lastLat, lastLng, lat, lng);
+
+      if (moved < 5) { // < 5 meters → treat as no movement
+        appendLocationLog(`↔️ No significant movement (${moved.toFixed(1)}m)`);
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const { latitude: lat, longitude: lng } = pos.coords;
-          appendLocationLog(`📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-          
-          try {
-            await addDoc(collection(db, 'locations'), { 
-              uid: auth.currentUser.uid, lat, lng, timestamp: serverTimestamp() 
-            });
-            appendLocationLog('💾 Location saved to Firebase');
-          } catch(e) {
-            appendLocationLog('❌ Firebase save failed');
-          }
+      lastLat = lat;
+      lastLng = lng;
 
-          // Check geofences
-          Object.values(customGeofences).forEach(fence => {
-            const dist = haversineDistance(lat, lng, fence.lat, fence.lng);
-            if (dist <= fence.radius) {
-              appendLocationLog(`✅ ENTERED ${fence.name} (${dist.toFixed(1)}m)`);
-            }
-          });
-        },
-        (err) => {
-          appendLocationLog(`❌ GPS Error: ${err.message}`);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
-      );
+      appendLocationLog(`📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+
+      try {
+        await addDoc(collection(db, 'locations'), {
+          uid: auth.currentUser.uid,
+          lat,
+          lng,
+          timestamp: serverTimestamp()
+        });
+        appendLocationLog('💾 Location saved to Firebase');
+      } catch (e) {
+        appendLocationLog('❌ Firebase save failed');
+      }
+
+      Object.values(customGeofences).forEach(fence => {
+        const dist = haversineDistance(lat, lng, fence.lat, fence.lng);
+        if (dist <= fence.radius) {
+          appendLocationLog(`✅ ENTERED ${fence.name} (${dist.toFixed(1)}m)`);
+        }
+      });
+    },
+    (err) => {
+      appendLocationLog(`❌ GPS Error: ${err.message}`);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
     }
+  );
+}
 
     // 🔥 FIXED: startTracking() - getCurrentPosition + 5s loop
     window.startTracking = () => {
