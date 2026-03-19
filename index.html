@@ -229,12 +229,12 @@ document.getElementById('linked-children-section').className = 'status ok';
   delete childListeners[childUid];  // Force recreate
   watchChildLocation(childUid); 
   });
-}
+  }
     // 🔥 REPLACE: watchChildLocation() - per-child marker management
 async function watchChildLocation(childUid) {
-  
   const q = query(collection(db, 'locations'), where('uid', '==', childUid), orderBy('timestamp', 'desc'), limit(1));
-  childListeners[childUid] = onSnapshot(q, (snap) => {  console.log('🔥 CHILD UPDATE:', childUid, snap.docs[0]?.data());
+  childListeners[childUid] = onSnapshot(q, (snap) => {  // ← Line 232
+    console.log('🔥 CHILD UPDATE:', childUid, snap.docs[0]?.data());
     if (snap.empty) {
       document.getElementById('child-status').innerHTML = `👦 ${childUid.slice(0,8)}... No location data`;
       return;
