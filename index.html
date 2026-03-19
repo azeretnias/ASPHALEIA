@@ -141,7 +141,7 @@
    let childListeners = {};
    let lastLat = null;
    let lastLng = null;
-
+   let watchId = null;
 
     // 🔥 DOM ELEMENTS
     const locationLogEl = document.getElementById('location-log');
@@ -311,96 +311,76 @@ async function watchChildLocation(childUid) {
     }
 
     // 🔥 FIXED GPS TRACKING (getCurrentPosition + 5s interval)
-    async function pollAndSaveLocation() {
-  if (!auth.currentUser) {
-    appendLocationLog('⚠️ No user logged in');
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(
+    async function startContinuousTracking() {
+  if (watchId) return;
+  
+  watchId = navigator.geolocation.watchPosition(
     async (pos) => {
       const { latitude: lat, longitude: lng } = pos.coords;
-
-      // Distance from last logged point
+      
       const moved = (lastLat === null || lastLng === null)
         ? Infinity
         : haversineDistance(lastLat, lastLng, lat, lng);
 
-      if (moved < 5) { // < 5 meters → treat as no movement
-        appendLocationLog(`↔️ No significant movement (${moved.toFixed(1)}m)`);
+      if (moved < 5) {
+        appendLocationLog(`↔️ No movement (${moved.toFixed(1)}m)`);
         return;
       }
 
       lastLat = lat;
       lastLng = lng;
-
       appendLocationLog(`📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
 
       try {
         await addDoc(collection(db, 'locations'), {
-          uid: auth.currentUser.uid,
-          lat,
-          lng,
-          timestamp: serverTimestamp()
+          uid: auth.currentUser.uid, lat, lng, timestamp: serverTimestamp()
         });
-        appendLocationLog('💾 Location saved to Firebase');
+        appendLocationLog('💾 Saved');
       } catch (e) {
-        appendLocationLog('❌ Firebase save failed');
+        appendLocationLog('❌ Save failed');
       }
 
       Object.values(customGeofences).forEach(fence => {
         const dist = haversineDistance(lat, lng, fence.lat, fence.lng);
         if (dist <= fence.radius) {
-          appendLocationLog(`✅ ENTERED ${fence.name} (${dist.toFixed(1)}m)`);
+          appendLocationLog(`✅ ENTERED ${fence.name}`);
         }
       });
     },
-    (err) => {
-      appendLocationLog(`❌ GPS Error: ${err.message}`);
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0
-    }
+    (err) => appendLocationLog(`❌ Watch error: ${err.message}`),
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
   );
+  appendLocationLog('👀 Continuous GPS watch started');
 }
 
+async function stopContinuousTracking() {
+  if (watchId) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+    appendLocationLog('👀 GPS watch stopped');
+  }
+}
     // 🔥 FIXED: startTracking() - getCurrentPosition + 5s loop
     window.startTracking = () => {
-      if (!locationPermissionGranted) {
-        alert('👆 Request GPS permission first!');
-        return;
-      }
-      if (trackingInterval) {
-        appendLocationLog('⚠️ Already tracking');
-        return;
-      }
+  if (!locationPermissionGranted) {
+    alert('Request GPS first!');
+    return;
+  }
+  startContinuousTracking();  // ← USES YOUR NEW watchPosition function
+  studentStatusEl.textContent = '🛰️ LIVE GPS WATCH';
+  studentStatusEl.className = 'status tracking';
+  startBtnEl.disabled = true;
+  stopBtnEl.style.display = 'inline-block';
+};
 
-      appendLocationLog('🚀 TRACKING STARTED (5s intervals)');
-      studentStatusEl.textContent = '🛰️ LIVE TRACKING (5s)';
-      studentStatusEl.className = 'status tracking';
-      
-      startBtnEl.disabled = true;
-      stopBtnEl.style.display = 'inline-block'; // 🔧 FIX 2: better layout
+window.stopTracking = () => {
+  stopContinuousTracking();  // ← USES YOUR NEW function
+  studentStatusEl.textContent = 'Stopped';
+  studentStatusEl.className = 'status pending';
+  startBtnEl.disabled = false;
+  stopBtnEl.style.display = 'none';
+};
 
-      // Start immediately, then every 5 seconds
-      pollAndSaveLocation();
-      trackingInterval = setInterval(pollAndSaveLocation, 5000);
-    };
-
-    // 🔥 FIXED: stopTracking() - clears interval properly
-    window.stopTracking = () => {
-      if (trackingInterval) {
-        clearInterval(trackingInterval);
-        trackingInterval = null;
-        appendLocationLog('⏹️ TRACKING STOPPED');
-      }
-      studentStatusEl.textContent = 'Stopped';
-      studentStatusEl.className = 'status pending';
-      startBtnEl.disabled = false;
-      stopBtnEl.style.display = 'none';
-    };
 
     // 🔥 NEW: Student listens for guardian START/STOP commands (with cleanup)
     function watchStudentTrackingCommands(userUid) {
@@ -535,6 +515,10 @@ async function watchChildLocation(childUid) {
   if (trackingInterval) {
     clearInterval(trackingInterval);
     trackingInterval = null;
+  }
+  if (watchId) {  // ← ADD THESE 2 LINES
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
   }
   if (commandUnsubscribe) {
     commandUnsubscribe();
