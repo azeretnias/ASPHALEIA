@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: 'unsafe-inline' 'unsafe-eval';">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Asphaleia - Phase 3 ✅ WIP</title>
@@ -470,10 +471,18 @@ window.stopTracking = () => {
     };
 
     window.login = async () => {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      await signInWithEmailAndPassword(auth, email, password);
-    };
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  
+  try {
+    console.log('🔐 LOGIN ATTEMPT:', email);
+    await signInWithEmailAndPassword(auth, email, password);
+    console.log('✅ LOGIN SUCCESS');
+  } catch (error) {
+    console.error('❌ LOGIN ERROR:', error.code, error.message);
+    alert(`❌ Login failed: ${error.message}\\nCode: ${error.code}`);
+  }
+};
 
     window.linkChild = async () => {
       const email = document.getElementById('child-email').value;
