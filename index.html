@@ -51,8 +51,8 @@
         <option value="student">👨‍🎓 Student</option>
         <option value="guardian">👨‍👧 Guardian</option>
       </select>
-      <button onclick="register()">Register</button>
-      <button onclick="login()">Login</button>
+      <button id="register-btn">Register</button>
+      <button id="login-btn">Login</button>
     </div>
 
     <!-- STUDENT DASHBOARD -->
@@ -132,6 +132,11 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+
+    window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('login-btn').onclick = window.login;
+  document.getElementById('register-btn').onclick = window.register;
+});
 
     // 🔥 ALL GLOBAL STATE
    let map, childMarker, customGeofences = {}, geofenceLayers = [];
