@@ -202,18 +202,19 @@ function watchGuardianChildren() {
         const childData = childDoc.data();
         const childEmail = childData?.email || 'Unknown';
         
-        childrenHTML += `
-          <div class="child-item">
-            <div>
-              <div class="child-name">👦 ${childEmail}</div>
-              <div style="font-size:14px;color:#666;">UID: ${childUid.slice(0,8)}...</div>
-            </div>
-            <div class="control-group">
-              <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'START')">▶️ START</button>
-              <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'STOP')" style="background:#ff4444;">⏹️ STOP</button>
-            </div>
-          </div>
-        `;
+       childrenHTML += `
+  <div class="child-item">
+    <div>
+      <div class="child-name">👦 ${childEmail}</div>
+      <div style="font-size:14px;color:#666;">UID: ${childUid.slice(0,8)}...</div>
+    </div>
+    <div class="control-group">
+      <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'START')">▶️ START</button>
+      <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'STOP')" style="background:#ff4444;">⏹️ STOP</button>
+      <button class="control-btn" onclick="unlinkChild('${childUid}')" style="background:#999;">🔓 Unlink</button>
+    </div>
+  </div>
+`;
       } catch(e) {
         childrenHTML += `<div class="child-item">👦 Child ${childUid.slice(0,8)}... (loading)</div>`;
       }
@@ -537,7 +538,38 @@ window.stopTracking = () => {
   }
   signOut(auth);
 };
+    
+window.unlinkChild = async (childUid) => {
+  if (!confirm('Are you sure you want to unlink this child?')) return;
 
+  const guardianRef = doc(db, 'guardianChildren', auth.currentUser.uid);
+
+  try {
+    const snap = await getDoc(guardianRef);
+    if (!snap.exists()) return alert('No linked children to unlink.');
+
+    const data = snap.data();
+    const currentChildren = data.children || [];
+    const updatedChildren = currentChildren.filter(uid => uid !== childUid);
+
+    await setDoc(guardianRef, { children: updatedChildren }, { merge: true });
+
+    // Clean up local listener + marker
+    if (childListeners[childUid]) {
+      childListeners[childUid]();
+      delete childListeners[childUid];
+    }
+    if (childMarkers[childUid]) {
+      map.removeLayer(childMarkers[childUid]);
+      delete childMarkers[childUid];
+    }
+
+    alert('✅ Child unlinked.');
+  } catch (e) {
+    alert('❌ Failed to unlink child: ' + e.message);
+  }
+};
+    
     async function watchGuardianDashboard() {
       initMap();
       loadGeofences();
