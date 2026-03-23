@@ -326,12 +326,16 @@ async function watchChildLocation(childUid) {
     }
 
     // 🔥 FIXED GPS TRACKING (getCurrentPosition + 5s interval)
-    async function startContinuousTracking() {
+   async function startContinuousTracking() {
   if (watchId) return;
   
+  // 🔥 FORCE FRESH GPS - ignore cache
   watchId = navigator.geolocation.watchPosition(
     async (pos) => {
-      const { latitude: lat, longitude: lng } = pos.coords;
+      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+      
+      // 🔥 DEBUG: Log EVERY position
+      appendLocationLog(`📍 RAW GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (acc: ${accuracy.toFixed(0)}m)`);
       
       const moved = (lastLat === null || lastLng === null)
         ? Infinity
@@ -344,17 +348,18 @@ async function watchChildLocation(childUid) {
 
       lastLat = lat;
       lastLng = lng;
-      appendLocationLog(`📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+      appendLocationLog(`📍 NEW POS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
 
       try {
         await addDoc(collection(db, 'locations'), {
-          uid: auth.currentUser.uid, lat, lng, timestamp: serverTimestamp()
+          uid: auth.currentUser.uid, lat, lng, accuracy, timestamp: serverTimestamp()
         });
-        appendLocationLog('💾 Saved');
+        appendLocationLog('💾 Saved to Firebase');
       } catch (e) {
         appendLocationLog('❌ Save failed');
       }
 
+      // Geofence check...
       Object.values(customGeofences).forEach(fence => {
         const dist = haversineDistance(lat, lng, fence.lat, fence.lng);
         if (dist <= fence.radius) {
@@ -362,10 +367,16 @@ async function watchChildLocation(childUid) {
         }
       });
     },
-    (err) => appendLocationLog(`❌ Watch error: ${err.message}`),
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
+    (err) => {
+      appendLocationLog(`❌ Watch error: ${err.message} (code: ${err.code})`);
+    },
+    { 
+      enableHighAccuracy: true, 
+      timeout: 20000, 
+      maximumAge: 10000  // 🔥 10s max cache age
+    }
   );
-  appendLocationLog('👀 Continuous GPS watch started');
+  appendLocationLog('👀 Fresh GPS watch started');
 }
 
 async function stopContinuousTracking() {
