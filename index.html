@@ -583,6 +583,7 @@ window.unlinkChild = async (childUid) => {
     
     async function watchGuardianDashboard() {
       initMap();
+      map.invalidateSize();
       loadGeofences();
       watchGuardianChildren();
     }
