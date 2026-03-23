@@ -176,9 +176,20 @@
     }
 
     function initMap() {
-      map = L.map('map').setView([25.2854, 51.5310], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    }
+  // ✅ FIX: Force pixel-perfect GPS rendering across devices
+  map = L.map('map', {
+    crs: L.CRS.EPSG3857,  // Explicit Web Mercator (OSM standard)
+    zoomControl: true,
+    attributionControl: true
+  }).setView([25.2854, 51.5310], 13);
+  
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+  
+  // ✅ EXTRA: Force map refresh on window resize (PC viewport fix)
+  window.addEventListener('resize', () => map?.invalidateSize());
+}
 
 // 🔥 REPLACE: watchGuardianChildren() - watches ALL children
 function watchGuardianChildren() {
