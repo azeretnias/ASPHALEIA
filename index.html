@@ -148,6 +148,8 @@
    let lastLat = null;
    let lastLng = null;
    let watchId = null;
+   let isInsideZone = false;  // GPS gatekeeper flag
+   let schoolZone = {lat: 25.2854, lng: 51.5310, radius: 75};  // Default fallback
 
     // 🔥 DOM ELEMENTS
     const locationLogEl = document.getElementById('location-log');
@@ -336,8 +338,15 @@ async function watchChildLocation(childUid) {
       
       // 🔥 DEBUG: Log EVERY position
       appendLocationLog(`📍 RAW GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (acc: ${accuracy.toFixed(0)}m)`);
-      
-      const moved = (lastLat === null || lastLng === null)
+        const schoolFence = customGeofences.school || {lat: 25.2854, lng: 51.5310, radius: 75};
+        const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng);
+      if (schoolDist <= schoolFence.radius / 1000 && !isInsideZone) {  // m → km
+        isInsideZone = true;
+        appendLocationLog(`🚀 SCHOOL ZONE ACTIVE (${schoolDist.toFixed(0)}m) - Face ready!`);
+      } else if (schoolDist > schoolFence.radius / 1000) {
+        isInsideZone = false;
+      }
+        const moved = (lastLat === null || lastLng === null)
         ? Infinity
         : haversineDistance(lastLat, lastLng, lat, lng);
 
