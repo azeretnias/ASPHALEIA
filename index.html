@@ -183,7 +183,6 @@
       locationLogEl.prepend(entry);
       locationLogEl.scrollTop = 0;
     }
-
     function haversineDistance(lat1, lng1, lat2, lng2) {
       const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -447,6 +446,14 @@ function updateFaceUI() {
     faceStatus.textContent = 'Waiting for zone trigger...';
   }
 }
+    
+window.startFaceVerify = () => {
+  appendLocationLog('📷 Face verify not implemented yet');
+};
+
+window.captureFace = () => {
+  appendLocationLog('📸 Capture & verify not implemented yet');
+};
     
     // 🔥 NEW: Student listens for guardian START/STOP commands (with cleanup)
     function watchStudentTrackingCommands(userUid) {
