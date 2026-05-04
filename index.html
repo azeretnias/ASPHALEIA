@@ -65,6 +65,17 @@
         <div id="gps-text">Click to enable GPS tracking</div>
         <button onclick="requestLocationPermission()" style="margin-top:12px;padding:12px 24px;font-size:18px;">📍 Request GPS</button>
       </div>
+
+      <div id="face-section" class="status pending hidden">
+  <h3>📷 Face Verification</h3>
+  <video id="face-preview" autoplay playsinline muted style="width:100%;max-height:280px;border-radius:12px;background:#000;"></video>
+  <canvas id="face-canvas" class="hidden"></canvas>
+  <div class="control-group">
+    <button id="face-verify-btn" onclick="startFaceVerify()" disabled>Face Verify</button>
+    <button id="capture-face-btn" onclick="captureFace()" style="background:#28a745;" disabled>Capture & Verify</button>
+  </div>
+  <div id="face-status" class="status pending">Waiting for zone trigger...</div>
+</div>
       
       <div id="student-status" class="status pending">Status: Waiting...</div>
       <div class="control-group">
@@ -138,19 +149,24 @@
   document.getElementById('register-btn').onclick = window.register;
 });
 
-    // 🔥 ALL GLOBAL STATE
-   let map, childMarker, customGeofences = {}, geofenceLayers = [];
-   let locationPermissionGranted = false, linkedChildren = [];
-   let trackingInterval = null;
-   let commandUnsubscribe = null;
-   let childMarkers = {};
-   let childListeners = {};
-   let lastLat = null;
-   let lastLng = null;
-   let watchId = null;
-   let isInsideZone = false;  // GPS gatekeeper flag
-   let schoolZone = {lat: 25.2854, lng: 51.5310, radius: 75};  // Default fallback
-
+   // 🔥 ALL GLOBAL STATE
+    let map, childMarker, customGeofences = {}, geofenceLayers = [];
+    let locationPermissionGranted = false, linkedChildren = [];
+    let trackingInterval = null;
+    let commandUnsubscribe = null;
+    let childMarkers = {};
+    let childListeners = {};
+    let lastLat = null;
+    let lastLng = null;
+    let watchId = null;
+    let isInsideSchoolZone = false;  // School check-in 🚀
+    let isInsideHomeZone = false;    // Home check-out 🏠
+    let schoolZone = {lat: 25.2854, lng: 51.5310, radius: 75};  // School fallback
+    let homeZone = {lat: 25.3548, lng: 51.1839, radius: 75};    // Home fallback
+    let faceStream = null;
+    let faceVerifyInProgress = false;
+    let faceCaptured = false;
+    
     // 🔥 DOM ELEMENTS
     const locationLogEl = document.getElementById('location-log');
     const studentStatusEl = document.getElementById('student-status');
@@ -274,14 +290,9 @@ async function watchChildLocation(childUid) {
       map.setView([lat, lng], 16);
     }
     
-    let status = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    Object.values(customGeofences).forEach(fence => {
-      const dist = haversineDistance(lat, lng, fence.lat, fence.lng);
-      status += `<br>${fence.name}: ${dist.toFixed(0)}m`;
+   document.getElementById('child-status').innerHTML = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+document.getElementById('child-status').className = 'status ok';
     });
-    document.getElementById('child-status').innerHTML = status;
-    document.getElementById('child-status').className = 'status ok';
-  });
 }
 
     // 🔥 GEOFENCE FUNCTIONS (UPDATED WITH AUTH NULL CHECK)
@@ -337,24 +348,31 @@ async function watchChildLocation(childUid) {
       const { latitude: lat, longitude: lng, accuracy } = pos.coords;
       
       // 🔥 DEBUG: Log EVERY position
-      appendLocationLog(`📍 RAW GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (acc: ${accuracy.toFixed(0)}m)`);
-        const schoolFence = customGeofences.school || {lat: 25.2854, lng: 51.5310, radius: 75};
-        const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng);
-      if (schoolDist <= schoolFence.radius / 1000 && !isInsideZone) {  // m → km
-        isInsideZone = true;
-        appendLocationLog(`🚀 SCHOOL ZONE ACTIVE (${schoolDist.toFixed(0)}m) - Face ready!`);
-      } else if (schoolDist > schoolFence.radius / 1000) {
-        isInsideZone = false;
-      }
-        const moved = (lastLat === null || lastLng === null)
-        ? Infinity
-        : haversineDistance(lastLat, lastLng, lat, lng);
+appendLocationLog(`📍 RAW GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (acc: ${accuracy.toFixed(0)}m)`);
 
-      if (moved < 5) {
-        appendLocationLog(`↔️ No movement (${moved.toFixed(1)}m)`);
-        return;
-      }
+// SCHOOL ZONE
+const schoolFence = customGeofences.school || schoolZone;
+const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng);
 
+if (schoolDist <= schoolFence.radius && !isInsideSchoolZone) {
+  isInsideSchoolZone = true;
+  appendLocationLog(`🚀 SCHOOL ZONE (${schoolDist.toFixed(0)}m) - Check-in ready!`);
+} else if (schoolDist > schoolFence.radius) {
+  isInsideSchoolZone = false;
+}
+
+// HOME ZONE
+const homeFence = customGeofences.home || homeZone;
+const homeDist = haversineDistance(lat, lng, homeFence.lat, homeFence.lng);
+
+if (homeDist <= homeFence.radius && !isInsideHomeZone) {
+  isInsideHomeZone = true;
+  appendLocationLog(`🏠 HOME ZONE (${homeDist.toFixed(0)}m) - Check-out ready!`);
+} else if (homeDist > homeFence.radius) {
+  isInsideHomeZone = false;
+}
+
+      updateFaceUI();
       lastLat = lat;
       lastLng = lng;
       appendLocationLog(`📍 NEW POS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
@@ -366,15 +384,7 @@ async function watchChildLocation(childUid) {
         appendLocationLog('💾 Saved to Firebase');
       } catch (e) {
         appendLocationLog('❌ Save failed');
-      }
-
-      // Geofence check...
-      Object.values(customGeofences).forEach(fence => {
-        const dist = haversineDistance(lat, lng, fence.lat, fence.lng);
-        if (dist <= fence.radius) {
-          appendLocationLog(`✅ ENTERED ${fence.name}`);
-        }
-      });
+      } 
     },
     (err) => {
       appendLocationLog(`❌ Watch error: ${err.message} (code: ${err.code})`);
@@ -415,8 +425,29 @@ window.stopTracking = () => {
   startBtnEl.disabled = false;
   stopBtnEl.style.display = 'none';
 };
+    
+// FACE REC
+function updateFaceUI() {
+  const faceSection = document.getElementById('face-section');
+  const faceBtn = document.getElementById('face-verify-btn');
+  const captureBtn = document.getElementById('capture-face-btn');
+  const faceStatus = document.getElementById('face-status');
 
+  const zoneActive = isInsideSchoolZone || isInsideHomeZone;
 
+  if (zoneActive) {
+    faceSection.classList.remove('hidden');
+    faceBtn.disabled = false;
+    captureBtn.disabled = false;
+    faceStatus.textContent = isInsideSchoolZone ? '🏫 School zone active' : '🏠 Home zone active';
+  } else {
+    faceSection.classList.add('hidden');
+    faceBtn.disabled = true;
+    captureBtn.disabled = true;
+    faceStatus.textContent = 'Waiting for zone trigger...';
+  }
+}
+    
     // 🔥 NEW: Student listens for guardian START/STOP commands (with cleanup)
     function watchStudentTrackingCommands(userUid) {
       if (commandUnsubscribe) commandUnsubscribe(); // 🔧 FIX 3: prevent stacking
