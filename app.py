@@ -3,21 +3,26 @@ from flask import Flask, request, jsonify
 import cv2
 import numpy as np
 import base64
+import os
 from io import BytesIO
 from PIL import Image
 
 app = Flask(__name__)
 
 recognizer = cv2.face.LBPHFaceRecognizer_create()
-recognizer.read("trainer-1/trainer.yml")
+recognizer.read("../trainer-1/recognizer.yml")
 
+if not os.path.exists("../trainer-1/recognizer.yml"):
+    print("🚨 ERROR: ../trainer-1/recognizer.yml missing!")
+    exit(1)
+print("✅ Model loaded!")
 face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
 
 # Update these to match your training labels
 label_map = {
-    0: "student_uid_1",
-    1: "student_uid_2",
-    2: "student_uid_3",
+    0: "Samuell",
+    1: "Rehanna",
+    2: "Alfonso",
 }
 
 def decode_image(image_data):
@@ -34,6 +39,7 @@ def detect_face(gray):
     x, y, w, h = faces[0]
     return gray[y:y + h, x:x + w]
 
+
 @app.route("/api/verify-face", methods=["POST"])
 def verify_face():
     data = request.get_json(force=True)
@@ -44,8 +50,10 @@ def verify_face():
         return jsonify({"verified": False, "message": "No image received"}), 400
 
     gray = decode_image(image_data)
-    face = detect_face(gray)
+    if gray is None or gray.size == 0:  # ← MOVED UP HERE
+        return jsonify({"verified": False, "message": "Bad image"}), 400
 
+    face = detect_face(gray)  # Now safe
     if face is None:
         return jsonify({"verified": False, "message": "No face detected"})
 
