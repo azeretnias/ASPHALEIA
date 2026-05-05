@@ -1,1 +1,74 @@
-// App py script.
+# app.py script.
+from flask import Flask, request, jsonify
+import cv2
+import numpy as np
+import base64
+from io import BytesIO
+from PIL import Image
+
+app = Flask(__name__)
+
+recognizer = cv2.face.LBPHFaceRecognizer_create()
+recognizer.read("trainer-1/trainer.yml")
+
+face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+
+# Update these to match your training labels
+label_map = {
+    0: "student_uid_1",
+    1: "student_uid_2",
+    2: "student_uid_3",
+}
+
+def decode_image(image_data):
+    if "," in image_data:
+        image_data = image_data.split(",")[1]
+    image_bytes = base64.b64decode(image_data)
+    img = Image.open(BytesIO(image_bytes)).convert("L")
+    return np.array(img, dtype="uint8")
+
+def detect_face(gray):
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5)
+    if len(faces) == 0:
+        return None
+    x, y, w, h = faces[0]
+    return gray[y:y + h, x:x + w]
+
+@app.route("/api/verify-face", methods=["POST"])
+def verify_face():
+    data = request.get_json(force=True)
+    uid = data.get("uid")
+    image_data = data.get("image")
+
+    if not image_data:
+        return jsonify({"verified": False, "message": "No image received"}), 400
+
+    gray = decode_image(image_data)
+    face = detect_face(gray)
+
+    if face is None:
+        return jsonify({"verified": False, "message": "No face detected"})
+
+    face = cv2.resize(face, (200, 200))
+    label, confidence = recognizer.predict(face)
+
+    matched_uid = label_map.get(label)
+    threshold = 80
+
+    if matched_uid == uid and confidence < threshold:
+        return jsonify({
+            "verified": True,
+            "label": label,
+            "confidence": confidence,
+            "message": "Face verified"
+        })
+
+    return jsonify({
+        "verified": False,
+        "label": label,
+        "confidence": confidence,
+        "message": "Face not recognized"
+    })
+
+if __name__ == "__main__":
+    app.run(debug=True)
