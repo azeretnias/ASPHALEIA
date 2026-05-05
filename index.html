@@ -548,7 +548,6 @@ window.captureFace = async () => {
 
   try {
     await startFaceCamera();
-
     const imageData = captureFacePhoto();
     if (!imageData) throw new Error('Camera not ready yet');
 
@@ -556,14 +555,12 @@ window.captureFace = async () => {
 
     const result = await verifyFaceWithServer(imageData);
 
-      if (result.verified) {
-  faceCaptured = true;
-  verificationPending = false;  // ← ADD THIS
-  document.getElementById('face-status').textContent = '✅ Face verified successfully';
-  appendLocationLog(isInsideSchoolZone ? '✅ SCHOOL CHECK-IN COMPLETE' : '✅ HOME CHECK-OUT COMPLETE');
-  updateFaceUI();  // ← ADD THIS to hide panel
-} 
-      appendLocationLog('✅ Face verified');
+    if (result.verified) {
+      faceCaptured = true;
+      verificationPending = false;
+      document.getElementById('face-status').textContent = '✅ Face verified successfully';
+      appendLocationLog(isInsideSchoolZone ? '✅ SCHOOL CHECK-IN COMPLETE' : '✅ HOME CHECK-OUT COMPLETE');
+      updateFaceUI();  // Hide panel
     } else {
       document.getElementById('face-status').textContent = result.message || '❌ Face not recognized';
       appendLocationLog('❌ Face verification failed');
