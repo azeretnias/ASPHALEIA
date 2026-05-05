@@ -9,13 +9,13 @@ from PIL import Image
 
 app = Flask(__name__)
 
-if not os.path.exists("./recognizer.yml"):
-    print("🚨 ERROR: ./recognizer.yml missing!")
+if not os.path.exists("./api/recognizer.yml"):
+    print("🚨 ERROR: ./api/recognizer.yml missing!")
     exit(1)
 recognizer = cv2.face.LBPHFaceRecognizer_create()
-recognizer.read("./recognizer.yml")
+recognizer.read("./api/recognizer.yml")
 print("✅ Model loaded!")
-face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+face_cascade = cv2.CascadeClassifier("./api/haarcascade_frontalface_default.xml")
 
 # Update these to match your training labels
 label_map = {
@@ -75,5 +75,4 @@ def verify_face():
         "message": "Face not recognized"
     })
 
-if __name__ == "__main__":
-    app.run(debug=True)
+app = app

@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/verify-face",
+      "destination": "/api/app.py"
+    }
+  ],
+  "builds": [
+    {
+      "src": "api/app.py",
+      "use": "@vercel/python"
+    }
+  ]
+}
