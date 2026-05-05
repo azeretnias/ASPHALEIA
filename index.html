@@ -98,6 +98,10 @@
         <h3>👦 Linked Children</h3>
         <div id="linked-children">🔍 Searching for children...</div>
       </div>
+
+      <div style="margin:12px 0;">
+  <button onclick="refreshLinkedChildren()" class="control-btn" style="background:#28a745;">🔄 Refresh Children</button>
+</div>
       
       <div class="geofence-section">
         <h3>🏫 School & Home Zones</h3>
@@ -293,6 +297,11 @@ function watchGuardianChildren() {
         childrenHTML += `<div class="child-item">👦 Child ${childUid.slice(0,8)}... (loading)</div>`;
       }
     }
+
+window.refreshLinkedChildren = () => {
+  watchGuardianChildren();  // Force re-run snapshot
+  alert('🔄 Children refreshed!');
+};
     
    document.getElementById('linked-children').innerHTML = childrenHTML;
 document.getElementById('linked-children-section').className = 'status ok';
