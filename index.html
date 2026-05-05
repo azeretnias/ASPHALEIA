@@ -1,3 +1,4 @@
+<!-- 1. From Line 1 to Line 127 contains the graphical aspect of the PWA. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,8 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Asphaleia - Phase 4 ✅ WIP</title>
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"> <!-- 1.1 MAP link for GPS -->
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- 1.2 GPS formatting -->
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, sans-serif; background: #f5f5f5; }
@@ -124,8 +126,10 @@
   <div id="guardian-notifications">No alerts</div>
   </div>
   </div>
-
+  
+  <!-- 2. SCRIPT. -->
   <script type="module">
+    // 2.1 Firebase configuration
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
     import { 
       getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, 
@@ -154,7 +158,7 @@
   document.getElementById('register-btn').onclick = window.register;
 });
 
-   // 🔥 ALL GLOBAL STATE
+   // 2.2 ALL GLOBAL STATES
     let map, childMarker, customGeofences = {}, geofenceLayers = [];
     let locationPermissionGranted = false, linkedChildren = [];
     let trackingInterval = null;
@@ -175,7 +179,7 @@
     let homeInsideCount = 0;
     let verificationPending = false;
     
-    // 🔥 DOM ELEMENTS
+    // 2.3 DOM ELEMENTS
     const locationLogEl = document.getElementById('location-log');
     const studentStatusEl = document.getElementById('student-status');
     const gpsIndicatorEl = document.getElementById('gps-indicator');
@@ -216,6 +220,7 @@
       locationLogEl.prepend(entry);
       locationLogEl.scrollTop = 0;
     }
+    // 2.4 HAVERSINE FUNCTION
     function haversineDistance(lat1, lng1, lat2, lng2) {
       const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -247,7 +252,7 @@
   }).addTo(map);
 }
 
-// 🔥 REPLACE: watchGuardianChildren() - watches ALL children
+// 2.5 Script for WATCHGUARDIANCHILDREN.
 function watchGuardianChildren() {
   const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
   onSnapshot(guardianDoc, async (snap) => {
@@ -268,7 +273,7 @@ function watchGuardianChildren() {
         const childDoc = await getDoc(doc(db, 'users', childUid));
         const childData = childDoc.data();
         const childEmail = childData?.email || 'Unknown';
-        
+// 2.6 HTML CODE FOR THE LINKING FEATURE
        childrenHTML += `
   <div class="child-item">
     <div>
@@ -332,6 +337,19 @@ async function watchChildLocation(childUid) {
 document.getElementById('child-status').className = 'status ok';
     });
 }
+
+window.sendTrackingCommand = async (childUid, command) => {
+  try {
+    await setDoc(doc(db, 'trackingCommands', childUid), {
+      command,
+      guardianUid: auth.currentUser.uid,
+      timestamp: serverTimestamp()
+    });
+    console.log(`📤 Sent ${command} to ${childUid.slice(0,8)}`);
+  } catch(e) {
+    alert(`❌ Command failed: ${e.message}`);
+  }
+};
 
 function watchGuardianNotifications() {
   const q = query(collection(db, 'notifications'), 
