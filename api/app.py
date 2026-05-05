@@ -86,8 +86,4 @@ def verify_face():
         "message": "Face not recognized"
     })
 
-app = app
-"""
-
-# The user is instructed to replace their api/app.py content with this.
-print("File updated with absolute path logic.")
+app = app 
