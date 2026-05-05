@@ -9,13 +9,23 @@ from PIL import Image
 
 app = Flask(__name__)
 
-if not os.path.exists("./api/recognizer.yml"):
-    print("🚨 ERROR: ./api/recognizer.yml missing!")
-    exit(1)
-recognizer = cv2.face.LBPHFaceRecognizer_create()
-recognizer.read("./api/recognizer.yml")
-print("✅ Model loaded!")
-face_cascade = cv2.CascadeClassifier("./api/haarcascade_frontalface_default.xml")
+# Use absolute paths relative to this script
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+recognizer_path = os.path.join(BASE_DIR, "recognizer.yml")
+cascade_path = os.path.join(BASE_DIR, "haarcascade_frontalface_default.xml")
+
+if not os.path.exists(recognizer_path):
+    print(f"🚨 ERROR: {recognizer_path} missing!")
+else:
+    recognizer = cv2.face.LBPHFaceRecognizer_create()
+    recognizer.read(recognizer_path)
+    print("✅ Model loaded!")
+
+if not os.path.exists(cascade_path):
+    print(f"🚨 ERROR: {cascade_path} missing!")
+    face_cascade = None
+else:
+    face_cascade = cv2.CascadeClassifier(cascade_path)
 
 # Update these to match your training labels
 label_map = {
@@ -30,12 +40,13 @@ def decode_image(image_data):
     return np.array(img, dtype="uint8")
 
 def detect_face(gray):
+    if face_cascade is None:
+        return None
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5)
     if len(faces) == 0:
         return None
     x, y, w, h = faces[0]
     return gray[y:y + h, x:x + w]
-
 
 @app.route("/api/verify-face", methods=["POST"])
 def verify_face():
@@ -47,10 +58,10 @@ def verify_face():
         return jsonify({"verified": False, "message": "No image received"}), 400
 
     gray = decode_image(image_data)
-    if gray is None or gray.size == 0:  # ← MOVED UP HERE
+    if gray is None or gray.size == 0:
         return jsonify({"verified": False, "message": "Bad image"}), 400
 
-    face = detect_face(gray)  # Now safe
+    face = detect_face(gray)
     if face is None:
         return jsonify({"verified": False, "message": "No face detected"})
 
@@ -76,3 +87,7 @@ def verify_face():
     })
 
 app = app
+"""
+
+# The user is instructed to replace their api/app.py content with this.
+print("File updated with absolute path logic.")
