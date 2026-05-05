@@ -9,20 +9,17 @@ from PIL import Image
 
 app = Flask(__name__)
 
-recognizer = cv2.face.LBPHFaceRecognizer_create()
-recognizer.read("../trainer-1/recognizer.yml")
-
-if not os.path.exists("../trainer-1/recognizer.yml"):
-    print("🚨 ERROR: ../trainer-1/recognizer.yml missing!")
+if not os.path.exists("./recognizer.yml"):
+    print("🚨 ERROR: ./recognizer.yml missing!")
     exit(1)
+recognizer = cv2.face.LBPHFaceRecognizer_create()
+recognizer.read("./recognizer.yml")
 print("✅ Model loaded!")
 face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
 
 # Update these to match your training labels
 label_map = {
-    0: "Samuell",
-    1: "Rehanna",
-    2: "Alfonso",
+    0: "G2G1g7oykpeDbJ8G1Dpf4t6IMF63",
 }
 
 def decode_image(image_data):

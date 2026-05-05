@@ -182,6 +182,8 @@
     let schoolInsideCount = 0;
     let homeInsideCount = 0;
     let verificationPending = false;
+    let lastState = { school: false, home: false };
+
 
     // 2.3 DOM ELEMENTS
     const locationLogEl = document.getElementById('location-log');
@@ -488,8 +490,11 @@
 
           appendLocationLog(`📍 RAW GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (acc: ${accuracy.toFixed(0)}m)`);
 
-          const schoolFence = customGeofences.school || schoolZone;
-          const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng);
+         const schoolFence = customGeofences.school || schoolZone;
+const homeFence = customGeofences.home || homeZone;
+
+const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng);
+const homeDist = haversineDistance(lat, lng, homeFence.lat, homeFence.lng);
 
           if (schoolDist <= schoolFence.radius) {
             schoolInsideCount += 1;
@@ -505,9 +510,6 @@
               updateFaceUI();
             }
           }
-
-          const homeFence = customGeofences.home || homeZone;
-          const homeDist = haversineDistance(lat, lng, homeFence.lat, homeFence.lng);
 
           if (homeDist <= homeFence.radius) {
             homeInsideCount += 1;
@@ -629,14 +631,18 @@
     }
 
     function captureFacePhoto() {
-      if (!facePreview.videoWidth || !facePreview.videoHeight) return null;
+  // Check if dimensions are > 0 and the video is actually playing
+  if (!facePreview.videoWidth || facePreview.videoWidth === 0) {
+     console.warn("Video not ready, retrying...");
+     return null; 
+  }
+  
+  faceCanvas.width = 320; // Force a consistent, small size
+  faceCanvas.height = 240; 
+  faceCtx.drawImage(facePreview, 0, 0, faceCanvas.width, faceCanvas.height);
 
-      faceCanvas.width = facePreview.videoWidth;
-      faceCanvas.height = facePreview.videoHeight;
-      faceCtx.drawImage(facePreview, 0, 0, faceCanvas.width, faceCanvas.height);
-
-      return faceCanvas.toDataURL('image/jpeg', 0.92);
-    }
+  return faceCanvas.toDataURL('image/jpeg', 0.8); // 0.8 is plenty, saves bandwidth
+}
 
     function stopFaceCamera() {
       if (faceStream) {
@@ -908,15 +914,17 @@
     };
 
     async function watchGuardianDashboard() {
-      initMap();
-      loadGeofences();
-      watchGuardianChildren();
-      watchGuardianNotifications();
-
-      setTimeout(() => {
-        map?.invalidateSize();
-      }, 50);
-    }
+  document.getElementById('guardian-dashboard').classList.remove('hidden');
+  
+  // Wait a tick for the CSS to render the container
+  setTimeout(() => {
+    initMap();
+    loadGeofences();
+    watchGuardianChildren();
+    watchGuardianNotifications();
+    map.invalidateSize();
+  }, 100);
+}
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
