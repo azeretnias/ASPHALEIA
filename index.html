@@ -174,6 +174,10 @@
     const gpsTextEl = document.getElementById('gps-text');
     const startBtnEl = document.getElementById('start-tracking-btn');
     const stopBtnEl = document.getElementById('stop-tracking-btn');
+    const facePreview = document.getElementById('face-preview');
+    const faceCanvas = document.getElementById('face-canvas');
+    const faceCtx = faceCanvas.getContext('2d');
+    
 
     function appendLocationLog(message) {
       const ts = new Date().toLocaleTimeString();
@@ -356,6 +360,7 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
 if (schoolDist <= schoolFence.radius && !isInsideSchoolZone) {
   isInsideSchoolZone = true;
   appendLocationLog(`🚀 SCHOOL ZONE (${schoolDist.toFixed(0)}m) - Check-in ready!`);
+  updateFaceUI();
 } else if (schoolDist > schoolFence.radius) {
   isInsideSchoolZone = false;
 }
@@ -367,11 +372,11 @@ const homeDist = haversineDistance(lat, lng, homeFence.lat, homeFence.lng);
 if (homeDist <= homeFence.radius && !isInsideHomeZone) {
   isInsideHomeZone = true;
   appendLocationLog(`🏠 HOME ZONE (${homeDist.toFixed(0)}m) - Check-out ready!`);
+  updateFaceUI();
 } else if (homeDist > homeFence.radius) {
   isInsideHomeZone = false;
 }
 
-      updateFaceUI();
       lastLat = lat;
       lastLng = lng;
       appendLocationLog(`📍 NEW POS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
@@ -418,7 +423,8 @@ async function stopContinuousTracking() {
 };
 
 window.stopTracking = () => {
-  stopContinuousTracking();  // ← USES YOUR NEW function
+  stopContinuousTracking();
+  stopFaceCamera();
   studentStatusEl.textContent = 'Stopped';
   studentStatusEl.className = 'status pending';
   startBtnEl.disabled = false;
@@ -444,15 +450,99 @@ function updateFaceUI() {
     faceBtn.disabled = true;
     captureBtn.disabled = true;
     faceStatus.textContent = 'Waiting for zone trigger...';
+    stopFaceCamera();
   }
 }
-    
-window.startFaceVerify = () => {
-  appendLocationLog('📷 Face verify not implemented yet');
+
+async function startFaceCamera() {
+  if (faceStream) return;
+
+  try {
+    faceStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user' },
+      audio: false
+    });
+
+    facePreview.srcObject = faceStream;
+    await facePreview.play();
+    appendLocationLog('📷 Camera started');
+  } catch (err) {
+    appendLocationLog(`❌ Camera error: ${err.message}`);
+  }
+}
+
+function captureFacePhoto() {
+  if (!facePreview.videoWidth || !facePreview.videoHeight) return null;
+
+  faceCanvas.width = facePreview.videoWidth;
+  faceCanvas.height = facePreview.videoHeight;
+  faceCtx.drawImage(facePreview, 0, 0, faceCanvas.width, faceCanvas.height);
+
+  return faceCanvas.toDataURL('image/jpeg', 0.92);
+}
+
+function stopFaceCamera() {
+  if (faceStream) {
+    faceStream.getTracks().forEach(track => track.stop());
+    faceStream = null;
+  }
+
+  if (facePreview) {
+    facePreview.pause();
+    facePreview.srcObject = null;
+  }
+}
+
+async function verifyFaceWithServer(imageData) {
+  const response = await fetch('/api/verify-face', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      image: imageData,
+      uid: auth.currentUser?.uid
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Server error: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+window.startFaceVerify = async () => {
+  await startFaceCamera();
+  document.getElementById('face-status').textContent = '📷 Camera ready. Tap Capture & Verify.';
 };
 
-window.captureFace = () => {
-  appendLocationLog('📸 Capture & verify not implemented yet');
+window.captureFace = async () => {
+  if (faceVerifyInProgress) return;
+  faceVerifyInProgress = true;
+
+  try {
+    await startFaceCamera();
+
+    const imageData = captureFacePhoto();
+    if (!imageData) throw new Error('Camera not ready yet');
+
+    document.getElementById('face-status').textContent = '🔎 Verifying face...';
+
+    const result = await verifyFaceWithServer(imageData);
+
+    if (result.verified) {
+      faceCaptured = true;
+      document.getElementById('face-status').textContent = '✅ Face verified successfully';
+      appendLocationLog('✅ Face verified');
+    } else {
+      document.getElementById('face-status').textContent = result.message || '❌ Face not recognized';
+      appendLocationLog('❌ Face verification failed');
+    }
+  } catch (err) {
+    document.getElementById('face-status').textContent = `❌ ${err.message}`;
+    appendLocationLog(`❌ Face capture failed: ${err.message}`);
+  } finally {
+    faceVerifyInProgress = false;
+  }
 };
     
     // 🔥 NEW: Student listens for guardian START/STOP commands (with cleanup)
@@ -500,28 +590,43 @@ window.captureFace = () => {
       );
     };
 
-    window.useMyLocation = () => {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        document.getElementById('geo-lat').value = pos.coords.latitude.toFixed(6);
-        document.getElementById('geo-lng').value = pos.coords.longitude.toFixed(6);
-        alert('📍 Location set!');
-      });
-    };
+   window.useMyLocation = () => {
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      document.getElementById('geo-lat').value = pos.coords.latitude.toFixed(6);
+      document.getElementById('geo-lng').value = pos.coords.longitude.toFixed(6);
+      alert('📍 Location set!');
+    },
+    (err) => {
+      alert(`❌ ${err.message}`);
+    },
+    { enableHighAccuracy: true, timeout: 15000 }
+  );
+};
 
     window.saveCustomGeofence = () => {
-      const type = document.getElementById('geofence-type').value;
-      const lat = parseFloat(document.getElementById('geo-lat').value);
-      const lng = parseFloat(document.getElementById('geo-lng').value);
-      const radius = parseInt(document.getElementById('geo-radius').value);
-      
-      if (isNaN(lat) || isNaN(lng) || radius < 10) return alert('Invalid coordinates');
-      
-      customGeofences[type] = { lat, lng, radius, name: type === 'school' ? 'School' : 'Home', type };
-      localStorage.setItem(`geofences_${auth.currentUser?.uid || 'default'}`, JSON.stringify(customGeofences));
-      renderGeofencesOnMap();
-      renderGeofenceList();
-      alert(`✅ ${type.toUpperCase()} saved!`);
-    };
+  const type = document.getElementById('geofence-type').value;
+  const lat = parseFloat(document.getElementById('geo-lat').value);
+  const lng = parseFloat(document.getElementById('geo-lng').value);
+  const radius = parseInt(document.getElementById('geo-radius').value, 10);
+
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) return alert('Invalid latitude');
+  if (!Number.isFinite(lng) || lng < -180 || lng > 180) return alert('Invalid longitude');
+  if (!Number.isFinite(radius) || radius < 10 || radius > 5000) return alert('Invalid radius');
+
+  customGeofences[type] = {
+    lat,
+    lng,
+    radius,
+    name: type === 'school' ? 'School' : 'Home',
+    type
+  };
+
+  localStorage.setItem(`geofences_${auth.currentUser?.uid || 'default'}`, JSON.stringify(customGeofences));
+  renderGeofencesOnMap();
+  renderGeofenceList();
+  alert(`✅ ${type.toUpperCase()} saved!`);
+};
 
     window.deleteGeofence = (type) => {
       delete customGeofences[type];
@@ -557,55 +662,62 @@ window.captureFace = () => {
 };
 
     window.linkChild = async () => {
-      const email = document.getElementById('child-email').value;
-      if (!email) return alert('Enter child email');
-      
-      try {
-        const q = query(collection(db, 'users'), where('email', '==', email), where('role', '==', 'student'), limit(1));
-        const snap = await getDocs(q);
-        if (snap.empty) return alert('❌ Student account not found');
-        
-        const childUid = snap.docs[0].id;
-        await setDoc(doc(db, 'guardianChildren', auth.currentUser.uid), { 
-          children: [childUid] 
-        }, { merge: true });
-        
-        alert(`✅ ${email} linked!`);
-      } catch(e) {
-        alert('❌ Link failed: ' + e.message);
-      }
-    };
+  const email = document.getElementById('child-email').value.trim().toLowerCase();
+  if (!email) return alert('Enter child email');
 
-    window.sendTrackingCommand = async (childUid, command) => {
-      try {
-        await setDoc(doc(db, 'trackingCommands', childUid), {
-          command, guardianUid: auth.currentUser.uid, timestamp: serverTimestamp()
-        });
-        alert(`${command} sent to ${childUid.slice(0,8)}...`);
-      } catch(e) {
-        alert('Command failed');
-      }
-    };
+  try {
+    const q = query(
+      collection(db, 'users'),
+      where('email', '==', email),
+      where('role', '==', 'student'),
+      limit(1)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return alert('❌ Student account not found');
 
-    window.logout = () => {
-  // REQUIRED CLEANUP - prevents Firestore quota exhaustion
-  Object.values(childListeners).forEach(unsub => unsub());
+    const childUid = snap.docs[0].id;
+    const guardianRef = doc(db, 'guardianChildren', auth.currentUser.uid);
+    const existingSnap = await getDoc(guardianRef);
+    const existingChildren = existingSnap.exists() ? (existingSnap.data().children || []) : [];
+
+    if (existingChildren.includes(childUid)) return alert('⚠️ Child already linked');
+
+    await setDoc(
+      guardianRef,
+      { children: [...existingChildren, childUid] },
+      { merge: true }
+    );
+
+    alert(`✅ ${email} linked!`);
+  } catch (e) {
+    alert('❌ Link failed: ' + e.message);
+  }
+};
+
+   window.logout = async () => {
+  Object.values(childListeners).forEach(unsub => unsub && unsub());
   Object.values(childMarkers).forEach(marker => map?.removeLayer(marker));
-  childMarkers = {}; childListeners = {};
-  
+  childMarkers = {};
+  childListeners = {};
+
   if (trackingInterval) {
     clearInterval(trackingInterval);
     trackingInterval = null;
   }
-  if (watchId) {  // ← ADD THESE 2 LINES
+
+  if (watchId) {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
   }
+
   if (commandUnsubscribe) {
     commandUnsubscribe();
     commandUnsubscribe = null;
   }
-  signOut(auth);
+
+  stopFaceCamera();
+
+  await signOut(auth);
 };
     
 window.unlinkChild = async (childUid) => {
@@ -639,12 +751,15 @@ window.unlinkChild = async (childUid) => {
   }
 };
     
-    async function watchGuardianDashboard() {
-      initMap();
-      map.invalidateSize();
-      loadGeofences();
-      watchGuardianChildren();
-    }
+ async function watchGuardianDashboard() {
+  initMap();
+  loadGeofences();
+  watchGuardianChildren();
+
+  requestAnimationFrame(() => {
+    map?.invalidateSize();
+  });
+}
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -668,9 +783,9 @@ window.unlinkChild = async (childUid) => {
           trackingInterval = null;
         }
         if (commandUnsubscribe) {
-          commandUnsubscribe();
-          commandUnsubscribe = null;
-        }
+  commandUnsubscribe();
+  commandUnsubscribe = null;
+}
       }
     });
   </script>
