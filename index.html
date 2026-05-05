@@ -118,6 +118,11 @@
       <input id="child-email" placeholder="Child's email">
       <button onclick="linkChild()" class="control-btn" style="width:100%;">👦 Link Child</button>
     </div>
+
+     <div id="notifications-section" class="status pending hidden">
+  <h3>🔔 Notifications</h3>
+  <div id="guardian-notifications">No alerts</div>
+  </div>
   </div>
 
   <script type="module">
@@ -328,6 +333,19 @@ document.getElementById('child-status').className = 'status ok';
     });
 }
 
+function watchGuardianNotifications() {
+  const q = query(collection(db, 'notifications'), 
+    where('guardianUid', '==', auth.currentUser.uid),
+    orderBy('timestamp', 'desc'), limit(10));
+  
+  onSnapshot(q, (snap) => {
+    const alerts = snap.docs.map(doc => doc.data());
+    document.getElementById('guardian-notifications').innerHTML = 
+      alerts.length ? alerts.map(n => `<div class="log-entry">${n.message} [${n.timestamp?.toDate?.()?.toLocaleTimeString?.() || 'now'}]</div>`).join('') 
+      : 'No alerts';
+    document.getElementById('notifications-section').classList.remove('hidden');
+  });
+}
     // 🔥 GEOFENCE FUNCTIONS (UPDATED WITH AUTH NULL CHECK)
     function loadGeofences() {
       if (!auth.currentUser) {
@@ -829,6 +847,7 @@ window.unlinkChild = async (childUid) => {
   initMap();
   loadGeofences();
   watchGuardianChildren();
+  watchGuardianNotifications();
 
   setTimeout(() => {
     map?.invalidateSize();
