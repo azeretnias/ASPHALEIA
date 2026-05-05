@@ -196,20 +196,26 @@
       return R * c;
     }
 
-    function initMap() {
-  // ✅ FIX: Force pixel-perfect GPS rendering across devices
+   function initMap() {
+  if (map) {
+    map.remove();
+    map = null;
+  }
+
+  const container = L.DomUtil.get('map');
+  if (container) {
+    container._leaflet_id = null;
+  }
+
   map = L.map('map', {
-    crs: L.CRS.EPSG3857,  // Explicit Web Mercator (OSM standard)
+    crs: L.CRS.EPSG3857,
     zoomControl: true,
     attributionControl: true
   }).setView([25.2854, 51.5310], 13);
-  
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(map);
-  
-  // ✅ EXTRA: Force map refresh on window resize (PC viewport fix)
-  window.addEventListener('resize', () => map?.invalidateSize());
 }
 
 // 🔥 REPLACE: watchGuardianChildren() - watches ALL children
@@ -756,9 +762,9 @@ window.unlinkChild = async (childUid) => {
   loadGeofences();
   watchGuardianChildren();
 
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     map?.invalidateSize();
-  });
+  }, 50);
 }
 
     onAuthStateChanged(auth, async (user) => {
