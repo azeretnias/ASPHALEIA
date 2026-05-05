@@ -269,8 +269,10 @@ function watchGuardianChildren() {
 
     let childrenHTML = '';
     for (let childUid of linkedChildren) {
-      try {
-        const childDoc = await getDoc(doc(db, 'users', childUid));
+     try {
+  console.log('🔍 Fetching user:', childUid);  // ← ADD
+  const childDoc = await getDoc(doc(db, 'users', childUid));
+  console.log('📄 User doc:', childDoc.exists(), childDoc.data()); 
         const childData = childDoc.data();
         const childEmail = childData?.email || 'Unknown';
 // 2.6 HTML CODE FOR THE LINKING FEATURE
