@@ -3,13 +3,12 @@
 <html lang="en">
 <head>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: 'unsafe-inline' 'unsafe-eval'; img-src 'self' https: data:;">
-  <meta charset="UTF-8">  
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Asphaleia - Phase 4 ✅ WIP</title>
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"> <!-- 1.1 MAP link for GPS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- 1.2 GPS formatting -->
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, sans-serif; background: #f5f5f5; }
@@ -33,7 +32,8 @@
     .child-name { font-size: 18px; font-weight: bold; color: #155724; }
     .location-permission { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; margin: 16px 0; }
     .gps-indicator { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; animation: pulse 2s infinite; display: inline-block; vertical-align: middle; }
-    .gps-ok { background: #00ff88; } .gps-denied { background: #ff4444; }
+    .gps-ok { background: #00ff88; }
+    .gps-denied { background: #ff4444; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .geofence-section { background: #f0f8ff; padding: 16px; border-radius: 8px; margin: 16px 0; }
     .geofence-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #e8f5e8; margin: 8px 0; border-radius: 8px; }
@@ -61,7 +61,7 @@
     <div id="student-dashboard" class="card hidden">
       <h2>👨‍🎓 Student View</h2>
       <button onclick="logout()" class="logout-btn">🚪 Logout</button>
-      
+
       <div id="gps-status" class="location-permission">
         <div id="gps-indicator" class="gps-indicator gps-denied"></div>
         <div id="gps-text">Click to enable GPS tracking</div>
@@ -69,16 +69,16 @@
       </div>
 
       <div id="face-section" class="status pending hidden">
-  <h3>📷 Face Verification</h3>
-  <video id="face-preview" autoplay playsinline muted style="width:100%;max-height:280px;border-radius:12px;background:#000;"></video>
-  <canvas id="face-canvas" class="hidden"></canvas>
-  <div class="control-group">
-    <button id="face-verify-btn" onclick="startFaceVerify()" disabled>Face Verify</button>
-    <button id="capture-face-btn" onclick="captureFace()" style="background:#28a745;" disabled>Capture & Verify</button>
-  </div>
-  <div id="face-status" class="status pending">Waiting for zone trigger...</div>
-</div>
-      
+        <h3>📷 Face Verification</h3>
+        <video id="face-preview" autoplay playsinline muted style="width:100%;max-height:280px;border-radius:12px;background:#000;"></video>
+        <canvas id="face-canvas" class="hidden"></canvas>
+        <div class="control-group">
+          <button id="face-verify-btn" onclick="startFaceVerify()" disabled>Face Verify</button>
+          <button id="capture-face-btn" onclick="captureFace()" style="background:#28a745;" disabled>Capture & Verify</button>
+        </div>
+        <div id="face-status" class="status pending">Waiting for zone trigger...</div>
+      </div>
+
       <div id="student-status" class="status pending">Status: Waiting...</div>
       <div class="control-group">
         <button onclick="startTracking()" id="start-tracking-btn" disabled>🚀 Start Tracking</button>
@@ -91,18 +91,18 @@
     <div id="guardian-dashboard" class="card hidden">
       <h2>👨‍👧 Guardian Dashboard</h2>
       <button onclick="logout()" class="logout-btn">🚪 Logout</button>
-      
+
       <div id="map"></div>
-      
+
       <div id="linked-children-section" class="status pending" style="margin:16px 0;">
         <h3>👦 Linked Children</h3>
         <div id="linked-children">🔍 Searching for children...</div>
       </div>
 
       <div style="margin:12px 0;">
-  <button onclick="refreshLinkedChildren()" class="control-btn" style="background:#28a745;">🔄 Refresh Children</button>
-</div>
-      
+        <button onclick="refreshLinkedChildren()" class="control-btn" style="background:#28a745;">🔄 Refresh Children</button>
+      </div>
+
       <div class="geofence-section">
         <h3>🏫 School & Home Zones</h3>
         <div class="control-group">
@@ -119,31 +119,30 @@
       </div>
 
       <div id="saved-geofences"></div>
-      
+
       <div id="child-status" class="status pending">Waiting for child location...</div>
       <input id="child-email" placeholder="Child's email">
       <button onclick="linkChild()" class="control-btn" style="width:100%;">👦 Link Child</button>
     </div>
 
-     <div id="notifications-section" class="status pending hidden">
-  <h3>🔔 Notifications</h3>
-  <div id="guardian-notifications">No alerts</div>
+    <div id="notifications-section" class="status pending hidden">
+      <h3>🔔 Notifications</h3>
+      <div id="guardian-notifications">No alerts</div>
+    </div>
   </div>
-  </div>
-  
+
   <!-- 2. SCRIPT. -->
   <script type="module">
-    // 2.1 Firebase configuration
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { 
-      getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, 
-      onAuthStateChanged, signOut 
+    import {
+      getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+      onAuthStateChanged, signOut
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-    import { 
-      getFirestore, doc, setDoc, onSnapshot, collection, addDoc, 
-      query, where, orderBy, limit, getDocs, getDoc, serverTimestamp 
+    import {
+      getFirestore, doc, setDoc, onSnapshot, collection, addDoc,
+      query, where, orderBy, limit, getDocs, getDoc, serverTimestamp
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-    
+
     const firebaseConfig = {
       apiKey: "AIzaSyDZgu8s-nebRP02myIna8FT9SvrKl9DVms",
       authDomain: "asphaleia-project-test.firebaseapp.com",
@@ -152,37 +151,38 @@
       messagingSenderId: "325392129267",
       appId: "1:325392129267:web:610966cf9d8b1cb46c2b86"
     };
-    
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
     window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('login-btn').onclick = window.login;
-  document.getElementById('register-btn').onclick = window.register;
-});
+      document.getElementById('login-btn').onclick = window.login;
+      document.getElementById('register-btn').onclick = window.register;
+    });
 
-   // 2.2 ALL GLOBAL STATES
+    // 2.2 ALL GLOBAL STATES
     let map, childMarker, customGeofences = {}, geofenceLayers = [];
     let locationPermissionGranted = false, linkedChildren = [];
     let trackingInterval = null;
     let commandUnsubscribe = null;
+    let guardianChildrenUnsubscribe = null;
     let childMarkers = {};
     let childListeners = {};
     let lastLat = null;
     let lastLng = null;
     let watchId = null;
-    let isInsideSchoolZone = false;  // School check-in 🚀
-    let isInsideHomeZone = false;    // Home check-out 🏠
-    let schoolZone = {lat: 25.2854, lng: 51.5310, radius: 75};  // School fallback
-    let homeZone = {lat: 25.3548, lng: 51.1839, radius: 75};    // Home fallback
+    let isInsideSchoolZone = false;
+    let isInsideHomeZone = false;
+    let schoolZone = { lat: 25.2854, lng: 51.5310, radius: 75 };
+    let homeZone = { lat: 25.3548, lng: 51.1839, radius: 75 };
     let faceStream = null;
     let faceVerifyInProgress = false;
     let faceCaptured = false;
     let schoolInsideCount = 0;
     let homeInsideCount = 0;
     let verificationPending = false;
-    
+
     // 2.3 DOM ELEMENTS
     const locationLogEl = document.getElementById('location-log');
     const studentStatusEl = document.getElementById('student-status');
@@ -195,26 +195,28 @@
     const faceCtx = faceCanvas.getContext('2d');
 
     async function sendGuardianNotification(zoneType) {
-  try {
-    const q = query(collection(db, 'guardianChildren'), 
-      where('children', 'array-contains', auth.currentUser.uid));
-    const snaps = await getDocs(q);
-    
-    for (let snap of snaps.docs) {
-      const guardianUid = snap.id;
-      await addDoc(collection(db, 'notifications'), {
-        guardianUid,
-        childUid: auth.currentUser.uid,
-        type: zoneType,
-        timestamp: serverTimestamp(),
-        message: `${zoneType === 'school_arrival' ? '🏫 ARRIVED SCHOOL' : '🏠 HOME SAFE'} - Face verified!`
-      });
-      appendLocationLog(`📱 Alert sent to guardian ${guardianUid.slice(0,8)}`);
+      try {
+        const q = query(
+          collection(db, 'guardianChildren'),
+          where('children', 'array-contains', auth.currentUser.uid)
+        );
+        const snaps = await getDocs(q);
+
+        for (let snap of snaps.docs) {
+          const guardianUid = snap.id;
+          await addDoc(collection(db, 'notifications'), {
+            guardianUid,
+            childUid: auth.currentUser.uid,
+            type: zoneType,
+            timestamp: serverTimestamp(),
+            message: `${zoneType === 'school_arrival' ? '🏫 ARRIVED SCHOOL' : '🏠 HOME SAFE'} - Face verified!`
+          });
+          appendLocationLog(`📱 Alert sent to guardian ${guardianUid.slice(0, 8)}`);
+        }
+      } catch (e) {
+        appendLocationLog(`⚠️ Alert failed: ${e.message}`);
+      }
     }
-  } catch(e) {
-    appendLocationLog(`⚠️ Alert failed: ${e.message}`);
-  }
-}
 
     function appendLocationLog(message) {
       const ts = new Date().toLocaleTimeString();
@@ -224,158 +226,210 @@
       locationLogEl.prepend(entry);
       locationLogEl.scrollTop = 0;
     }
-    // 2.4 HAVERSINE FUNCTION
+
     function haversineDistance(lat1, lng1, lat2, lng2) {
       const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLng = (lng2 - lng1) * Math.PI / 180;
-      const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2)**2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
     }
 
-   function initMap() {
-  if (map) {
-    map.remove();
-    map = null;
-  }
-
-  const container = L.DomUtil.get('map');
-  if (container) {
-    container._leaflet_id = null;
-  }
-
-  map = L.map('map', {
-    crs: L.CRS.EPSG3857,
-    zoomControl: true,
-    attributionControl: true
-  }).setView([25.2854, 51.5310], 13);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
-}
-
-// 2.5 Script for WATCHGUARDIANCHILDREN.
-function watchGuardianChildren() {
-  const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
-  onSnapshot(guardianDoc, async (snap) => {
-    if (!snap.exists()) {
-      document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked.</div>';
-      return;
-    }
-    
-    linkedChildren = snap.data().children || [];
-    if (linkedChildren.length === 0) {
-      document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked.</div>';
-      return;
-    }
-
-    let childrenHTML = '';
-    for (let childUid of linkedChildren) {
-     try {
-  console.log('🔍 Fetching user:', childUid);  // ← ADD
-  const childDoc = await getDoc(doc(db, 'users', childUid));
-  console.log('📄 User doc:', childDoc.exists(), childDoc.data()); 
-        const childData = childDoc.data();
-        const childEmail = childData?.email || 'Unknown';
-// 2.6 HTML CODE FOR THE LINKING FEATURE
-       childrenHTML += `
-  <div class="child-item">
-    <div>
-      <div class="child-name">👦 ${childEmail}</div>
-      <div style="font-size:14px;color:#666;">UID: ${childUid.slice(0,8)}...</div>
-    </div>
-    <div class="control-group">
-      <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'START')">▶️ START</button>
-      <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'STOP')" style="background:#ff4444;">⏹️ STOP</button>
-      <button class="control-btn" onclick="unlinkChild('${childUid}')" style="background:#999;">🔓 Unlink</button>
-    </div>
-  </div>
-`;
-      } catch(e) {
-        childrenHTML += `<div class="child-item">👦 Child ${childUid.slice(0,8)}... (loading)</div>`;
+    function initMap() {
+      if (map) {
+        map.remove();
+        map = null;
       }
+
+      const container = L.DomUtil.get('map');
+      if (container) {
+        container._leaflet_id = null;
+      }
+
+      map = L.map('map', {
+        crs: L.CRS.EPSG3857,
+        zoomControl: true,
+        attributionControl: true
+      }).setView([25.2854, 51.5310], 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
     }
 
-window.refreshLinkedChildren = () => {
-  watchGuardianChildren();  // Force re-run snapshot
-  alert('🔄 Children refreshed!');
-};
-    
-   document.getElementById('linked-children').innerHTML = childrenHTML;
-document.getElementById('linked-children-section').className = 'status ok';
-    
-    // 🔥 FIXED: Clean ALL listeners first, then recreate
-   Object.values(childListeners).forEach(unsub => unsub());
-    childListeners = {};
-    linkedChildren.forEach((childUid) => {
-      delete childListeners[childUid];
-      watchChildLocation(childUid);
-    });
-  });
-}
-async function watchChildLocation(childUid) {
-  const q = query(collection(db, 'locations'), where('uid', '==', childUid), orderBy('timestamp', 'desc'), limit(1));
-  childListeners[childUid] = onSnapshot(q, (snap) => {
-    console.log('🔥 CHILD UPDATE:', childUid, snap.docs[0]?.data());
-    if (snap.empty) {
-      document.getElementById('child-status').innerHTML = `👦 ${childUid.slice(0,8)}... No location data`;
-      return;
-    }
-    
-    const data = snap.docs[0].data();
-    const lat = data.lat, lng = data.lng;
-    
-    if (!childMarkers[childUid]) {
-      childMarkers[childUid] = L.marker([lat, lng], {
-        icon: L.divIcon({ 
-          className: 'child-location', 
-          html: `👦<div style="font-size:10px;">${childUid.slice(0,6)}</div>`, 
-          iconSize: [48, 56], 
-          iconAnchor: [24, 56] 
-        })
-      }).addTo(map).bindPopup(`Child ${childUid.slice(0,8)}...`);
-    } else {
-      childMarkers[childUid].setLatLng([lat, lng]);
-    }
-    
-    if (linkedChildren[0] === childUid) {
-      map.setView([lat, lng], 16);
-    }
-    
-   document.getElementById('child-status').innerHTML = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-document.getElementById('child-status').className = 'status ok';
-    });
-}
+    function watchGuardianChildren() {
+      const guardianDoc = doc(db, 'guardianChildren', auth.currentUser.uid);
 
-window.sendTrackingCommand = async (childUid, command) => {
-  try {
-    await setDoc(doc(db, 'trackingCommands', childUid), {
-      command,
-      guardianUid: auth.currentUser.uid,
-      timestamp: serverTimestamp()
-    });
-    console.log(`📤 Sent ${command} to ${childUid.slice(0,8)}`);
-  } catch(e) {
-    alert(`❌ Command failed: ${e.message}`);
-  }
-};
+      if (guardianChildrenUnsubscribe) {
+        guardianChildrenUnsubscribe();
+        guardianChildrenUnsubscribe = null;
+      }
 
-function watchGuardianNotifications() {
-  const q = query(collection(db, 'notifications'), 
-    where('guardianUid', '==', auth.currentUser.uid),
-    orderBy('timestamp', 'desc'), limit(10));
-  
-  onSnapshot(q, (snap) => {
-    const alerts = snap.docs.map(doc => doc.data());
-    document.getElementById('guardian-notifications').innerHTML = 
-      alerts.length ? alerts.map(n => `<div class="log-entry">${n.message} [${n.timestamp?.toDate?.()?.toLocaleTimeString?.() || 'now'}]</div>`).join('') 
-      : 'No alerts';
-    document.getElementById('notifications-section').classList.remove('hidden');
-  });
-}
-    // 🔥 GEOFENCE FUNCTIONS (UPDATED WITH AUTH NULL CHECK)
+      guardianChildrenUnsubscribe = onSnapshot(guardianDoc, async (snap) => {
+        try {
+          if (!snap.exists()) {
+            document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked.</div>';
+            document.getElementById('linked-children-section').className = 'status pending';
+            return;
+          }
+
+          linkedChildren = Array.isArray(snap.data().children) ? snap.data().children : [];
+
+          if (linkedChildren.length === 0) {
+            document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked.</div>';
+            document.getElementById('linked-children-section').className = 'status pending';
+            return;
+          }
+
+          const results = await Promise.all(
+            linkedChildren.map(async (childUid) => {
+              console.log('🔍 Fetching user:', childUid);
+
+              try {
+                const childRef = doc(db, 'users', childUid);
+                const childSnap = await getDoc(childRef);
+
+                console.log('📄 User doc:', childUid, {
+                  exists: childSnap.exists(),
+                  data: childSnap.exists() ? childSnap.data() : null
+                });
+
+                if (!childSnap.exists()) {
+                  return {
+                    childUid,
+                    html: `
+                      <div class="child-item">
+                        <div class="child-name">👦 ${(childUid || '').slice(0, 8)}... (missing profile)</div>
+                        <div style="font-size:14px;color:#666;">No users/${childUid} document found</div>
+                      </div>
+                    `
+                  };
+                }
+
+                const childData = childSnap.data() || {};
+                const childEmail = childData.email || 'Unknown';
+
+                return {
+                  childUid,
+                  html: `
+                    <div class="child-item">
+                      <div>
+                        <div class="child-name">👦 ${childEmail}</div>
+                        <div style="font-size:14px;color:#666;">UID: ${childUid.slice(0, 8)}...</div>
+                      </div>
+                      <div class="control-group">
+                        <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'START')">▶️ START</button>
+                        <button class="control-btn" onclick="sendTrackingCommand('${childUid}', 'STOP')" style="background:#ff4444;">⏹️ STOP</button>
+                        <button class="control-btn" onclick="unlinkChild('${childUid}')" style="background:#999;">🔓 Unlink</button>
+                      </div>
+                    </div>
+                  `
+                };
+              } catch (e) {
+                console.error(`❌ Error loading child ${childUid}:`, e);
+                return {
+                  childUid,
+                  html: `
+                    <div class="child-item">
+                      <div class="child-name">👦 ${(childUid || '').slice(0, 8)}... (error)</div>
+                      <div style="font-size:14px;color:#666;">${e.message || 'Failed to load child profile'}</div>
+                    </div>
+                  `
+                };
+              }
+            })
+          );
+
+          document.getElementById('linked-children').innerHTML = results.map(r => r.html).join('');
+          document.getElementById('linked-children-section').className = 'status ok';
+
+          Object.values(childListeners).forEach(unsub => unsub && unsub());
+          childListeners = {};
+
+          linkedChildren.forEach((childUid) => {
+            watchChildLocation(childUid);
+          });
+        } catch (e) {
+          console.error('❌ watchGuardianChildren fatal error:', e);
+          document.getElementById('linked-children').innerHTML = `<div style="color:#721c24;">Failed to load children: ${e.message}</div>`;
+          document.getElementById('linked-children-section').className = 'status error';
+        }
+      });
+    }
+
+    window.refreshLinkedChildren = () => {
+      watchGuardianChildren();
+      alert('🔄 Children refreshed!');
+    };
+
+    async function watchChildLocation(childUid) {
+      const q = query(collection(db, 'locations'), where('uid', '==', childUid), orderBy('timestamp', 'desc'), limit(1));
+      childListeners[childUid] = onSnapshot(q, (snap) => {
+        console.log('🔥 CHILD UPDATE:', childUid, snap.docs[0]?.data());
+
+        if (snap.empty) {
+          document.getElementById('child-status').innerHTML = `👦 ${childUid.slice(0, 8)}... No location data`;
+          return;
+        }
+
+        const data = snap.docs[0].data();
+        const lat = data.lat;
+        const lng = data.lng;
+
+        if (!childMarkers[childUid]) {
+          childMarkers[childUid] = L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: 'child-location',
+              html: `👦<div style="font-size:10px;">${childUid.slice(0, 6)}</div>`,
+              iconSize: [48, 56],
+              iconAnchor: [24, 56]
+            })
+          }).addTo(map).bindPopup(`Child ${childUid.slice(0, 8)}...`);
+        } else {
+          childMarkers[childUid].setLatLng([lat, lng]);
+        }
+
+        if (linkedChildren[0] === childUid) {
+          map.setView([lat, lng], 16);
+        }
+
+        document.getElementById('child-status').innerHTML = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        document.getElementById('child-status').className = 'status ok';
+      });
+    }
+
+    window.sendTrackingCommand = async (childUid, command) => {
+      try {
+        await setDoc(doc(db, 'trackingCommands', childUid), {
+          command,
+          guardianUid: auth.currentUser.uid,
+          timestamp: serverTimestamp()
+        });
+        console.log(`📤 Sent ${command} to ${childUid.slice(0, 8)}`);
+      } catch (e) {
+        alert(`❌ Command failed: ${e.message}`);
+      }
+    };
+
+    function watchGuardianNotifications() {
+      const q = query(
+        collection(db, 'notifications'),
+        where('guardianUid', '==', auth.currentUser.uid),
+        orderBy('timestamp', 'desc'),
+        limit(10)
+      );
+
+      onSnapshot(q, (snap) => {
+        const alerts = snap.docs.map(doc => doc.data());
+        document.getElementById('guardian-notifications').innerHTML =
+          alerts.length
+            ? alerts.map(n => `<div class="log-entry">${n.message} [${n.timestamp?.toDate?.()?.toLocaleTimeString?.() || 'now'}]</div>`).join('')
+            : 'No alerts';
+        document.getElementById('notifications-section').classList.remove('hidden');
+      });
+    }
+
     function loadGeofences() {
       if (!auth.currentUser) {
         customGeofences = {};
@@ -384,13 +438,15 @@ function watchGuardianNotifications() {
       }
 
       const saved = localStorage.getItem(`geofences_${auth.currentUser.uid}`);
-      if (saved) customGeofences = JSON.parse(saved);
-      else {
+      if (saved) {
+        customGeofences = JSON.parse(saved);
+      } else {
         customGeofences = {
           school: { lat: 25.2854, lng: 51.5310, radius: 75, name: 'School', type: 'school' },
           home: { lat: 25.3548, lng: 51.1839, radius: 75, name: 'Home', type: 'home' }
         };
       }
+
       renderGeofencesOnMap();
       renderGeofenceList();
     }
@@ -399,17 +455,22 @@ function watchGuardianNotifications() {
       if (!map) return;
       geofenceLayers.forEach(layer => map.removeLayer(layer));
       geofenceLayers = [];
+
       Object.entries(customGeofences).forEach(([key, fence]) => {
         const color = key === 'school' ? '#00ff00' : '#ff4444';
         const layer = L.circle([fence.lat, fence.lng], {
-          color, fillColor: color, fillOpacity: 0.4, weight: 4, radius: fence.radius
+          color,
+          fillColor: color,
+          fillOpacity: 0.4,
+          weight: 4,
+          radius: fence.radius
         }).addTo(map).bindPopup(`${fence.name} (${fence.radius}m)`);
         geofenceLayers.push(layer);
       });
     }
 
     function renderGeofenceList() {
-      document.getElementById('saved-geofences').innerHTML = 
+      document.getElementById('saved-geofences').innerHTML =
         Object.entries(customGeofences).map(([key, fence]) => `
           <div class="geofence-item">
             <span>📍 ${fence.name}: ${fence.lat.toFixed(4)}, ${fence.lng.toFixed(4)} (${fence.radius}m)</span>
@@ -418,243 +479,242 @@ function watchGuardianNotifications() {
         `).join('') || '<div style="color:#666;">No geofences saved</div>';
     }
 
-    // 🔥 FIXED GPS TRACKING (getCurrentPosition + 5s interval)
-   async function startContinuousTracking() {
-  if (watchId) return;
-  
-  // 🔥 FORCE FRESH GPS - ignore cache
-  watchId = navigator.geolocation.watchPosition(
-    async (pos) => {
-      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-      
-      // 🔥 DEBUG: Log EVERY position
-appendLocationLog(`📍 RAW GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (acc: ${accuracy.toFixed(0)}m)`);
+    async function startContinuousTracking() {
+      if (watchId) return;
 
-// SCHOOL ZONE
-const schoolFence = customGeofences.school || schoolZone;
-const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng);
+      watchId = navigator.geolocation.watchPosition(
+        async (pos) => {
+          const { latitude: lat, longitude: lng, accuracy } = pos.coords;
 
-if (schoolDist <= schoolFence.radius) {
-  schoolInsideCount += 1;
-  if (schoolInsideCount >= 2 && !isInsideSchoolZone) {
-    isInsideSchoolZone = true;
-    appendLocationLog(`🚀 SCHOOL ZONE (${schoolDist.toFixed(0)}m) - Check-in ready!`);
-    updateFaceUI();
-  }
-} else if (schoolDist > schoolFence.radius + 20) {
-  schoolInsideCount = 0;
-  if (isInsideSchoolZone) {
-    isInsideSchoolZone = false;
-    updateFaceUI();
-  }
-}
+          appendLocationLog(`📍 RAW GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (acc: ${accuracy.toFixed(0)}m)`);
 
-// HOME ZONE
-const homeFence = customGeofences.home || homeZone;
-const homeDist = haversineDistance(lat, lng, homeFence.lat, homeFence.lng);
+          const schoolFence = customGeofences.school || schoolZone;
+          const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng);
 
-if (homeDist <= homeFence.radius) {
-  homeInsideCount += 1;
-  if (homeInsideCount >= 2 && !isInsideHomeZone) {
-    isInsideHomeZone = true;
-    appendLocationLog(`🏠 HOME ZONE (${homeDist.toFixed(0)}m) - Check-out ready!`);
-    updateFaceUI();
-  }
-} else if (homeDist > homeFence.radius + 20) {
-  homeInsideCount = 0;
-  if (isInsideHomeZone) {
-    isInsideHomeZone = false;
-    updateFaceUI();
-  }
-}
+          if (schoolDist <= schoolFence.radius) {
+            schoolInsideCount += 1;
+            if (schoolInsideCount >= 2 && !isInsideSchoolZone) {
+              isInsideSchoolZone = true;
+              appendLocationLog(`🚀 SCHOOL ZONE (${schoolDist.toFixed(0)}m) - Check-in ready!`);
+              updateFaceUI();
+            }
+          } else if (schoolDist > schoolFence.radius + 20) {
+            schoolInsideCount = 0;
+            if (isInsideSchoolZone) {
+              isInsideSchoolZone = false;
+              updateFaceUI();
+            }
+          }
 
-      lastLat = lat;
-      lastLng = lng;
-      appendLocationLog(`📍 NEW POS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+          const homeFence = customGeofences.home || homeZone;
+          const homeDist = haversineDistance(lat, lng, homeFence.lat, homeFence.lng);
+
+          if (homeDist <= homeFence.radius) {
+            homeInsideCount += 1;
+            if (homeInsideCount >= 2 && !isInsideHomeZone) {
+              isInsideHomeZone = true;
+              appendLocationLog(`🏠 HOME ZONE (${homeDist.toFixed(0)}m) - Check-out ready!`);
+              updateFaceUI();
+            }
+          } else if (homeDist > homeFence.radius + 20) {
+            homeInsideCount = 0;
+            if (isInsideHomeZone) {
+              isInsideHomeZone = false;
+              updateFaceUI();
+            }
+          }
+
+          lastLat = lat;
+          lastLng = lng;
+          appendLocationLog(`📍 NEW POS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+
+          try {
+            await addDoc(collection(db, 'locations'), {
+              uid: auth.currentUser.uid,
+              lat,
+              lng,
+              accuracy,
+              timestamp: serverTimestamp()
+            });
+            appendLocationLog('💾 Saved to Firebase');
+          } catch (e) {
+            appendLocationLog('❌ Save failed');
+          }
+        },
+        (err) => {
+          appendLocationLog(`❌ Watch error: ${err.message} (code: ${err.code})`);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 10000
+        }
+      );
+
+      appendLocationLog('👀 Fresh GPS watch started');
+    }
+
+    async function stopContinuousTracking() {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        appendLocationLog('👀 GPS watch stopped');
+      }
+    }
+
+    window.startTracking = () => {
+      if (!locationPermissionGranted) {
+        alert('Request GPS first!');
+        return;
+      }
+
+      startContinuousTracking();
+      studentStatusEl.textContent = '🛰️ LIVE GPS WATCH';
+      studentStatusEl.className = 'status tracking';
+      startBtnEl.disabled = true;
+      stopBtnEl.style.display = 'inline-block';
+    };
+
+    window.stopTracking = () => {
+      stopContinuousTracking();
+      stopFaceCamera();
+      studentStatusEl.textContent = 'Stopped';
+      studentStatusEl.className = 'status pending';
+      startBtnEl.disabled = false;
+      stopBtnEl.style.display = 'none';
+    };
+
+    function updateFaceUI() {
+      const faceSection = document.getElementById('face-section');
+      const faceBtn = document.getElementById('face-verify-btn');
+      const captureBtn = document.getElementById('capture-face-btn');
+      const faceStatus = document.getElementById('face-status');
+
+      const zoneActive = isInsideSchoolZone || isInsideHomeZone;
+
+      if (zoneActive || verificationPending) {
+        faceSection.classList.remove('hidden');
+        faceBtn.disabled = false;
+        captureBtn.disabled = false;
+        faceStatus.textContent = isInsideSchoolZone
+          ? '🏫 SCHOOL: Camera active - Tap Capture to verify'
+          : '🏠 HOME: Camera active - Tap Capture to verify';
+        faceStatus.className = 'status ok';
+        startFaceCamera();
+      } else {
+        faceSection.classList.add('hidden');
+        faceBtn.disabled = true;
+        captureBtn.disabled = true;
+        faceStatus.textContent = 'Waiting for zone trigger...';
+        faceStatus.className = 'status pending';
+        stopFaceCamera();
+      }
+    }
+
+    async function startFaceCamera() {
+      if (faceStream) return;
 
       try {
-        await addDoc(collection(db, 'locations'), {
-          uid: auth.currentUser.uid, lat, lng, accuracy, timestamp: serverTimestamp()
+        faceStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+          audio: false
         });
-        appendLocationLog('💾 Saved to Firebase');
-      } catch (e) {
-        appendLocationLog('❌ Save failed');
-      } 
-    },
-    (err) => {
-      appendLocationLog(`❌ Watch error: ${err.message} (code: ${err.code})`);
-    },
-    { 
-      enableHighAccuracy: true, 
-      timeout: 20000, 
-      maximumAge: 10000  // 🔥 10s max cache age
+
+        facePreview.srcObject = faceStream;
+        await facePreview.play();
+        appendLocationLog('📷 Camera started');
+      } catch (err) {
+        appendLocationLog(`❌ Camera error: ${err.message}`);
+      }
     }
-  );
-  appendLocationLog('👀 Fresh GPS watch started');
-}
 
-async function stopContinuousTracking() {
-  if (watchId) {
-    navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-    appendLocationLog('👀 GPS watch stopped');
-  }
-}
-    // 🔥 FIXED: startTracking() - getCurrentPosition + 5s loop
-    window.startTracking = () => {
-  if (!locationPermissionGranted) {
-    alert('Request GPS first!');
-    return;
-  }
-  startContinuousTracking();  // ← USES YOUR NEW watchPosition function
-  studentStatusEl.textContent = '🛰️ LIVE GPS WATCH';
-  studentStatusEl.className = 'status tracking';
-  startBtnEl.disabled = true;
-  stopBtnEl.style.display = 'inline-block';
-};
+    function captureFacePhoto() {
+      if (!facePreview.videoWidth || !facePreview.videoHeight) return null;
 
-window.stopTracking = () => {
-  stopContinuousTracking();
-  stopFaceCamera();
-  studentStatusEl.textContent = 'Stopped';
-  studentStatusEl.className = 'status pending';
-  startBtnEl.disabled = false;
-  stopBtnEl.style.display = 'none';
-};
-    
-// FACE REC
-function updateFaceUI() {
-  const faceSection = document.getElementById('face-section');
-  const faceBtn = document.getElementById('face-verify-btn');
-  const captureBtn = document.getElementById('capture-face-btn');
-  const faceStatus = document.getElementById('face-status');
+      faceCanvas.width = facePreview.videoWidth;
+      faceCanvas.height = facePreview.videoHeight;
+      faceCtx.drawImage(facePreview, 0, 0, faceCanvas.width, faceCanvas.height);
 
-  const zoneActive = isInsideSchoolZone || isInsideHomeZone;
-
-  if (zoneActive || verificationPending) {
-    faceSection.classList.remove('hidden');
-    faceBtn.disabled = false;
-    captureBtn.disabled = false;
-    faceStatus.textContent = isInsideSchoolZone 
-  ? '🏫 SCHOOL: Camera active - Tap Capture to verify' 
-  : '🏠 HOME: Camera active - Tap Capture to verify';
-    faceStatus.className = 'status ok';
-    startFaceCamera();  // ← ADD THIS ONE LINE
-  } else {
-    faceSection.classList.add('hidden');
-    faceBtn.disabled = true;
-    captureBtn.disabled = true;
-    faceStatus.textContent = 'Waiting for zone trigger...';
-    faceStatus.className = 'status pending';
-    stopFaceCamera();
-  }
-}
-
-async function startFaceCamera() {
-  if (faceStream) return;
-
-  try {
-    faceStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user' },
-      audio: false
-    });
-
-    facePreview.srcObject = faceStream;
-    await facePreview.play();
-    appendLocationLog('📷 Camera started');
-  } catch (err) {
-    appendLocationLog(`❌ Camera error: ${err.message}`);
-  }
-}
-
-function captureFacePhoto() {
-  if (!facePreview.videoWidth || !facePreview.videoHeight) return null;
-
-  faceCanvas.width = facePreview.videoWidth;
-  faceCanvas.height = facePreview.videoHeight;
-  faceCtx.drawImage(facePreview, 0, 0, faceCanvas.width, faceCanvas.height);
-
-  return faceCanvas.toDataURL('image/jpeg', 0.92);
-}
-
-function stopFaceCamera() {
-  if (faceStream) {
-    faceStream.getTracks().forEach(track => track.stop());
-    faceStream = null;
-  }
-
-  if (facePreview) {
-    facePreview.pause();
-    facePreview.srcObject = null;
-  }
-}
-
-async function verifyFaceWithServer(imageData) {
-  const response = await fetch('/api/verify-face', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      image: imageData,
-      uid: auth.currentUser?.uid
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Server error: ${response.status}`);
-  }
-
-  return await response.json();
-}
-
-window.startFaceVerify = async () => {
-  await startFaceCamera();
-  document.getElementById('face-status').textContent = '📷 Camera ready. Tap Capture & Verify.';
-};
-
-window.captureFace = async () => {
-  if (faceVerifyInProgress) return;
-  faceVerifyInProgress = true;
-
-  try {
-    await startFaceCamera();
-    const imageData = captureFacePhoto();
-    if (!imageData) throw new Error('Camera not ready yet');
-
-    document.getElementById('face-status').textContent = '🔎 Verifying face...';
-
-    const result = await verifyFaceWithServer(imageData);
-
-    if (result.verified) {
-      faceCaptured = true;
-      verificationPending = false;
-      document.getElementById('face-status').textContent = '✅ Face verified successfully';
-      appendLocationLog(isInsideSchoolZone ? '✅ SCHOOL CHECK-IN COMPLETE' : '✅ HOME CHECK-OUT COMPLETE');
-      await sendGuardianNotification(isInsideSchoolZone ? 'school_arrival' : 'home_departure');
-      updateFaceUI();  // Hide panel
-    } else {
-      document.getElementById('face-status').textContent = result.message || '❌ Face not recognized';
-      appendLocationLog('❌ Face verification failed');
+      return faceCanvas.toDataURL('image/jpeg', 0.92);
     }
-  } catch (err) {
-    document.getElementById('face-status').textContent = `❌ ${err.message}`;
-    appendLocationLog(`❌ Face capture failed: ${err.message}`);
-  } finally {
-    faceVerifyInProgress = false;
-  }
-};
-    
-    // 🔥 NEW: Student listens for guardian START/STOP commands (with cleanup)
+
+    function stopFaceCamera() {
+      if (faceStream) {
+        faceStream.getTracks().forEach(track => track.stop());
+        faceStream = null;
+      }
+
+      if (facePreview) {
+        facePreview.pause();
+        facePreview.srcObject = null;
+      }
+    }
+
+    async function verifyFaceWithServer(imageData) {
+      const response = await fetch('/api/verify-face', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: imageData,
+          uid: auth.currentUser?.uid
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      return await response.json();
+    }
+
+    window.startFaceVerify = async () => {
+      await startFaceCamera();
+      document.getElementById('face-status').textContent = '📷 Camera ready. Tap Capture & Verify.';
+    };
+
+    window.captureFace = async () => {
+      if (faceVerifyInProgress) return;
+      faceVerifyInProgress = true;
+
+      try {
+        await startFaceCamera();
+        const imageData = captureFacePhoto();
+        if (!imageData) throw new Error('Camera not ready yet');
+
+        document.getElementById('face-status').textContent = '🔎 Verifying face...';
+
+        const result = await verifyFaceWithServer(imageData);
+
+        if (result.verified) {
+          faceCaptured = true;
+          verificationPending = false;
+          document.getElementById('face-status').textContent = '✅ Face verified successfully';
+          appendLocationLog(isInsideSchoolZone ? '✅ SCHOOL CHECK-IN COMPLETE' : '✅ HOME CHECK-OUT COMPLETE');
+          await sendGuardianNotification(isInsideSchoolZone ? 'school_arrival' : 'home_departure');
+          updateFaceUI();
+        } else {
+          document.getElementById('face-status').textContent = result.message || '❌ Face not recognized';
+          appendLocationLog('❌ Face verification failed');
+        }
+      } catch (err) {
+        document.getElementById('face-status').textContent = `❌ ${err.message}`;
+        appendLocationLog(`❌ Face capture failed: ${err.message}`);
+      } finally {
+        faceVerifyInProgress = false;
+      }
+    };
+
     function watchStudentTrackingCommands(userUid) {
-      if (commandUnsubscribe) commandUnsubscribe(); // 🔧 FIX 3: prevent stacking
+      if (commandUnsubscribe) commandUnsubscribe();
 
       const cmdDocRef = doc(db, 'trackingCommands', userUid);
       commandUnsubscribe = onSnapshot(cmdDocRef, (snap) => {
         if (!snap.exists()) return;
-        
+
         const data = snap.data();
         const command = data.command;
         const ts = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString() : 'now';
-        
+
         appendLocationLog(`📩 Guardian command: ${command} @ ${ts}`);
 
         if (command === 'START') {
@@ -670,7 +730,6 @@ window.captureFace = async () => {
       });
     }
 
-    // 🔥 WINDOW FUNCTIONS
     window.requestLocationPermission = () => {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -680,51 +739,51 @@ window.captureFace = async () => {
           startBtnEl.disabled = false;
           appendLocationLog('✅ GPS permission granted');
         },
-        (err) => { 
-          gpsTextEl.innerHTML = `❌ ${err.message}`; 
+        (err) => {
+          gpsTextEl.innerHTML = `❌ ${err.message}`;
           appendLocationLog(`❌ GPS denied: ${err.message}`);
         },
         { enableHighAccuracy: true, timeout: 15000 }
       );
     };
 
-   window.useMyLocation = () => {
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      document.getElementById('geo-lat').value = pos.coords.latitude.toFixed(6);
-      document.getElementById('geo-lng').value = pos.coords.longitude.toFixed(6);
-      alert('📍 Location set!');
-    },
-    (err) => {
-      alert(`❌ ${err.message}`);
-    },
-    { enableHighAccuracy: true, timeout: 15000 }
-  );
-};
+    window.useMyLocation = () => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          document.getElementById('geo-lat').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('geo-lng').value = pos.coords.longitude.toFixed(6);
+          alert('📍 Location set!');
+        },
+        (err) => {
+          alert(`❌ ${err.message}`);
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+      );
+    };
 
     window.saveCustomGeofence = () => {
-  const type = document.getElementById('geofence-type').value;
-  const lat = parseFloat(document.getElementById('geo-lat').value);
-  const lng = parseFloat(document.getElementById('geo-lng').value);
-  const radius = parseInt(document.getElementById('geo-radius').value, 10);
+      const type = document.getElementById('geofence-type').value;
+      const lat = parseFloat(document.getElementById('geo-lat').value);
+      const lng = parseFloat(document.getElementById('geo-lng').value);
+      const radius = parseInt(document.getElementById('geo-radius').value, 10);
 
-  if (!Number.isFinite(lat) || lat < -90 || lat > 90) return alert('Invalid latitude');
-  if (!Number.isFinite(lng) || lng < -180 || lng > 180) return alert('Invalid longitude');
-  if (!Number.isFinite(radius) || radius < 10 || radius > 5000) return alert('Invalid radius');
+      if (!Number.isFinite(lat) || lat < -90 || lat > 90) return alert('Invalid latitude');
+      if (!Number.isFinite(lng) || lng < -180 || lng > 180) return alert('Invalid longitude');
+      if (!Number.isFinite(radius) || radius < 10 || radius > 5000) return alert('Invalid radius');
 
-  customGeofences[type] = {
-    lat,
-    lng,
-    radius,
-    name: type === 'school' ? 'School' : 'Home',
-    type
-  };
+      customGeofences[type] = {
+        lat,
+        lng,
+        radius,
+        name: type === 'school' ? 'School' : 'Home',
+        type
+      };
 
-  localStorage.setItem(`geofences_${auth.currentUser?.uid || 'default'}`, JSON.stringify(customGeofences));
-  renderGeofencesOnMap();
-  renderGeofenceList();
-  alert(`✅ ${type.toUpperCase()} saved!`);
-};
+      localStorage.setItem(`geofences_${auth.currentUser?.uid || 'default'}`, JSON.stringify(customGeofences));
+      renderGeofencesOnMap();
+      renderGeofenceList();
+      alert(`✅ ${type.toUpperCase()} saved!`);
+    };
 
     window.deleteGeofence = (type) => {
       delete customGeofences[type];
@@ -746,128 +805,127 @@ window.captureFace = async () => {
     };
 
     window.login = async () => {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  
-  try {
-    console.log('🔐 LOGIN ATTEMPT:', email);
-    await signInWithEmailAndPassword(auth, email, password);
-    console.log('✅ LOGIN SUCCESS');
-  } catch (error) {
-    console.error('❌ LOGIN ERROR:', error.code, error.message);
-    alert(`❌ Login failed: ${error.message}\nCode: ${error.code}`);
-  }
-};
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        console.log('🔐 LOGIN ATTEMPT:', email);
+        await signInWithEmailAndPassword(auth, email, password);
+        console.log('✅ LOGIN SUCCESS');
+      } catch (error) {
+        console.error('❌ LOGIN ERROR:', error.code, error.message);
+        alert(`❌ Login failed: ${error.message}\nCode: ${error.code}`);
+      }
+    };
 
     window.linkChild = async () => {
-  const email = document.getElementById('child-email').value.trim().toLowerCase();
-  if (!email) return alert('Enter child email');
+      const email = document.getElementById('child-email').value.trim().toLowerCase();
+      if (!email) return alert('Enter child email');
 
-  try {
-    const q = query(
-      collection(db, 'users'),
-      where('email', '==', email),
-      where('role', '==', 'student'),
-      limit(1)
-    );
-    const snap = await getDocs(q);
-    if (snap.empty) return alert('❌ Student account not found');
+      try {
+        const q = query(
+          collection(db, 'users'),
+          where('email', '==', email),
+          where('role', '==', 'student'),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if (snap.empty) return alert('❌ Student account not found');
 
-    const childUid = snap.docs[0].id;
-    const guardianRef = doc(db, 'guardianChildren', auth.currentUser.uid);
-    const existingSnap = await getDoc(guardianRef);
-    const existingChildren = existingSnap.exists() ? (existingSnap.data().children || []) : [];
+        const childUid = snap.docs[0].id;
+        const guardianRef = doc(db, 'guardianChildren', auth.currentUser.uid);
+        const existingSnap = await getDoc(guardianRef);
+        const existingChildren = existingSnap.exists() ? (existingSnap.data().children || []) : [];
 
-    if (existingChildren.includes(childUid)) return alert('⚠️ Child already linked');
+        if (existingChildren.includes(childUid)) return alert('⚠️ Child already linked');
 
-    await setDoc(
-      guardianRef,
-      { children: [...existingChildren, childUid] },
-      { merge: true }
-    );
+        await setDoc(guardianRef, { children: [...existingChildren, childUid] }, { merge: true });
+        alert(`✅ ${email} linked!`);
+      } catch (e) {
+        alert('❌ Link failed: ' + e.message);
+      }
+    };
 
-    alert(`✅ ${email} linked!`);
-  } catch (e) {
-    alert('❌ Link failed: ' + e.message);
-  }
-};
+    window.logout = async () => {
+      Object.values(childListeners).forEach(unsub => unsub && unsub());
+      Object.values(childMarkers).forEach(marker => map?.removeLayer(marker));
+      childMarkers = {};
+      childListeners = {};
 
-   window.logout = async () => {
-  Object.values(childListeners).forEach(unsub => unsub && unsub());
-  Object.values(childMarkers).forEach(marker => map?.removeLayer(marker));
-  childMarkers = {};
-  childListeners = {};
+      if (trackingInterval) {
+        clearInterval(trackingInterval);
+        trackingInterval = null;
+      }
 
-  if (trackingInterval) {
-    clearInterval(trackingInterval);
-    trackingInterval = null;
-  }
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
 
-  if (watchId) {
-    navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-  }
+      if (commandUnsubscribe) {
+        commandUnsubscribe();
+        commandUnsubscribe = null;
+      }
 
-  if (commandUnsubscribe) {
-    commandUnsubscribe();
-    commandUnsubscribe = null;
-  }
+      if (guardianChildrenUnsubscribe) {
+        guardianChildrenUnsubscribe();
+        guardianChildrenUnsubscribe = null;
+      }
 
-  stopFaceCamera();
+      stopFaceCamera();
+      await signOut(auth);
+    };
 
-  await signOut(auth);
-};
-    
-window.unlinkChild = async (childUid) => {
-  if (!confirm('Are you sure you want to unlink this child?')) return;
+    window.unlinkChild = async (childUid) => {
+      if (!confirm('Are you sure you want to unlink this child?')) return;
 
-  const guardianRef = doc(db, 'guardianChildren', auth.currentUser.uid);
+      const guardianRef = doc(db, 'guardianChildren', auth.currentUser.uid);
 
-  try {
-    const snap = await getDoc(guardianRef);
-    if (!snap.exists()) return alert('No linked children to unlink.');
+      try {
+        const snap = await getDoc(guardianRef);
+        if (!snap.exists()) return alert('No linked children to unlink.');
 
-    const data = snap.data();
-    const currentChildren = data.children || [];
-    const updatedChildren = currentChildren.filter(uid => uid !== childUid);
+        const data = snap.data();
+        const currentChildren = data.children || [];
+        const updatedChildren = currentChildren.filter(uid => uid !== childUid);
 
-    await setDoc(guardianRef, { children: updatedChildren }, { merge: true });
+        await setDoc(guardianRef, { children: updatedChildren }, { merge: true });
 
-    // Clean up local listener + marker
-    if (childListeners[childUid]) {
-      childListeners[childUid]();
-      delete childListeners[childUid];
+        if (childListeners[childUid]) {
+          childListeners[childUid]();
+          delete childListeners[childUid];
+        }
+
+        if (childMarkers[childUid]) {
+          map.removeLayer(childMarkers[childUid]);
+          delete childMarkers[childUid];
+        }
+
+        alert('✅ Child unlinked.');
+      } catch (e) {
+        alert('❌ Failed to unlink child: ' + e.message);
+      }
+    };
+
+    async function watchGuardianDashboard() {
+      initMap();
+      loadGeofences();
+      watchGuardianChildren();
+      watchGuardianNotifications();
+
+      setTimeout(() => {
+        map?.invalidateSize();
+      }, 50);
     }
-    if (childMarkers[childUid]) {
-      map.removeLayer(childMarkers[childUid]);
-      delete childMarkers[childUid];
-    }
-
-    alert('✅ Child unlinked.');
-  } catch (e) {
-    alert('❌ Failed to unlink child: ' + e.message);
-  }
-};
-    
- async function watchGuardianDashboard() {
-  initMap();
-  loadGeofences();
-  watchGuardianChildren();
-  watchGuardianNotifications();
-
-  setTimeout(() => {
-    map?.invalidateSize();
-  }, 50);
-}
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userSnap = await getDoc(doc(db, 'users', user.uid));
         const role = userSnap.data()?.role;
-        
+
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById(role === 'guardian' ? 'guardian-dashboard' : 'student-dashboard').classList.remove('hidden');
-        
+
         if (role === 'guardian') {
           watchGuardianDashboard();
         } else if (role === 'student') {
@@ -877,24 +935,38 @@ window.unlinkChild = async (childUid) => {
       } else {
         document.querySelectorAll('[id$="-dashboard"]').forEach(el => el.classList.add('hidden'));
         document.getElementById('auth-screen').classList.remove('hidden');
+
         if (trackingInterval) {
           clearInterval(trackingInterval);
           trackingInterval = null;
         }
+
         if (commandUnsubscribe) {
-  commandUnsubscribe();
-  commandUnsubscribe = null;
-}
+          commandUnsubscribe();
+          commandUnsubscribe = null;
+        }
+
+        if (guardianChildrenUnsubscribe) {
+          guardianChildrenUnsubscribe();
+          guardianChildrenUnsubscribe = null;
+        }
       }
     });
   </script>
 
   <style>
-    .leaflet-marker-pane .child-location { 
-      background: #ff6b6b !important; border-radius: 50% !important; 
-      border: 4px solid white !important; box-shadow: 0 4px 16px rgba(255,107,107,0.8) !important; 
-      display: flex !important; align-items: center !important; justify-content: center !important; 
-      font-size: 24px !important; width: 48px !important; height: 48px !important; z-index: 1000 !important;
+    .leaflet-marker-pane .child-location {
+      background: #ff6b6b !important;
+      border-radius: 50% !important;
+      border: 4px solid white !important;
+      box-shadow: 0 4px 16px rgba(255,107,107,0.8) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 24px !important;
+      width: 48px !important;
+      height: 48px !important;
+      z-index: 1000 !important;
     }
   </style>
 </body>
