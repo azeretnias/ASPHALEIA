@@ -613,29 +613,6 @@ window.captureFace = async () => {
     faceVerifyInProgress = false;
   }
 };
-
-async function sendGuardianNotification(zoneType) {
-  try {
-    // Find linked guardians (reverse lookup)
-    const q = query(collection(db, 'guardianChildren'), 
-      where('children', 'array-contains', auth.currentUser.uid));
-    const snaps = await getDocs(q);
-    
-    for (let snap of snaps.docs) {
-      const guardianUid = snap.id;
-      await addDoc(collection(db, 'notifications'), {
-        guardianUid,
-        childUid: auth.currentUser.uid,
-        type: zoneType,  // 'school_arrival' or 'home_departure'
-        timestamp: serverTimestamp(),
-        message: `${zoneType === 'school_arrival' ? '🏫 ARRIVED SCHOOL' : '🏠 HOME SAFE'} - Face verified!`
-      });
-      appendLocationLog(`📱 FCM sent to guardian ${guardianUid.slice(0,8)}`);
-    }
-  } catch(e) {
-    appendLocationLog(`⚠️ Notification failed: ${e.message}`);
-  }
-}
     
     // 🔥 NEW: Student listens for guardian START/STOP commands (with cleanup)
     function watchStudentTrackingCommands(userUid) {
