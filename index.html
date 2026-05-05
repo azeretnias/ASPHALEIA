@@ -180,7 +180,28 @@
     const facePreview = document.getElementById('face-preview');
     const faceCanvas = document.getElementById('face-canvas');
     const faceCtx = faceCanvas.getContext('2d');
+
+    async function sendGuardianNotification(zoneType) {
+  try {
+    const q = query(collection(db, 'guardianChildren'), 
+      where('children', 'array-contains', auth.currentUser.uid));
+    const snaps = await getDocs(q);
     
+    for (let snap of snaps.docs) {
+      const guardianUid = snap.id;
+      await addDoc(collection(db, 'notifications'), {
+        guardianUid,
+        childUid: auth.currentUser.uid,
+        type: zoneType,
+        timestamp: serverTimestamp(),
+        message: `${zoneType === 'school_arrival' ? '🏫 ARRIVED SCHOOL' : '🏠 HOME SAFE'} - Face verified!`
+      });
+      appendLocationLog(`📱 Alert sent to guardian ${guardianUid.slice(0,8)}`);
+    }
+  } catch(e) {
+    appendLocationLog(`⚠️ Alert failed: ${e.message}`);
+  }
+}
 
     function appendLocationLog(message) {
       const ts = new Date().toLocaleTimeString();
@@ -468,9 +489,10 @@ function updateFaceUI() {
     faceBtn.disabled = false;
     captureBtn.disabled = false;
     faceStatus.textContent = isInsideSchoolZone 
-      ? '🏫 SCHOOL: Verify face for arrival check-in' 
-      : '🏠 HOME: Verify face for departure check-out';
+  ? '🏫 SCHOOL: Camera active - Tap Capture to verify' 
+  : '🏠 HOME: Camera active - Tap Capture to verify';
     faceStatus.className = 'status ok';
+    startFaceCamera();  // ← ADD THIS ONE LINE
   } else {
     faceSection.classList.add('hidden');
     faceBtn.disabled = true;
@@ -560,6 +582,7 @@ window.captureFace = async () => {
       verificationPending = false;
       document.getElementById('face-status').textContent = '✅ Face verified successfully';
       appendLocationLog(isInsideSchoolZone ? '✅ SCHOOL CHECK-IN COMPLETE' : '✅ HOME CHECK-OUT COMPLETE');
+      await sendGuardianNotification(isInsideSchoolZone ? 'school_arrival' : 'home_departure');
       updateFaceUI();  // Hide panel
     } else {
       document.getElementById('face-status').textContent = result.message || '❌ Face not recognized';
@@ -572,6 +595,29 @@ window.captureFace = async () => {
     faceVerifyInProgress = false;
   }
 };
+
+async function sendGuardianNotification(zoneType) {
+  try {
+    // Find linked guardians (reverse lookup)
+    const q = query(collection(db, 'guardianChildren'), 
+      where('children', 'array-contains', auth.currentUser.uid));
+    const snaps = await getDocs(q);
+    
+    for (let snap of snaps.docs) {
+      const guardianUid = snap.id;
+      await addDoc(collection(db, 'notifications'), {
+        guardianUid,
+        childUid: auth.currentUser.uid,
+        type: zoneType,  // 'school_arrival' or 'home_departure'
+        timestamp: serverTimestamp(),
+        message: `${zoneType === 'school_arrival' ? '🏫 ARRIVED SCHOOL' : '🏠 HOME SAFE'} - Face verified!`
+      });
+      appendLocationLog(`📱 FCM sent to guardian ${guardianUid.slice(0,8)}`);
+    }
+  } catch(e) {
+    appendLocationLog(`⚠️ Notification failed: ${e.message}`);
+  }
+}
     
     // 🔥 NEW: Student listens for guardian START/STOP commands (with cleanup)
     function watchStudentTrackingCommands(userUid) {
