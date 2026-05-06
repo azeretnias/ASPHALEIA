@@ -182,6 +182,8 @@
     let homeInsideCount = 0;
     let verificationPending = false;
     let lastState = { school: false, home: false };
+    let geofenceUnsubscribe = null;
+
 
 
     // 2.3 DOM ELEMENTS
@@ -493,7 +495,7 @@
 const homeFence = customGeofences.home || homeZone;
 
 const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng);
-const homeDist = haversineDistance(lat, lng, homeFence.lat, homeFence.lng);
+          const homeDist = haversineDistance(lat, lng, homeFence.lat, homeFence.lng);
 
           if (schoolDist <= schoolFence.radius) {
             schoolInsideCount += 1;
@@ -501,8 +503,23 @@ const homeDist = haversineDistance(lat, lng, homeFence.lat, homeFence.lng);
               isInsideSchoolZone = true;
               appendLocationLog(`🚀 SCHOOL ZONE (${schoolDist.toFixed(0)}m) - Check-in ready!`);
               updateFaceUI();
+  
+              // 🔥 NEW: FIRST NOTIFICATION - Geofence verified (triggers guardian listener)
+              try {
+                await setDoc(doc(db, 'verifications', auth.currentUser.uid), {
+                  childUid: auth.currentUser.uid,
+                  guardianUid: linkedChildren || null,  // Guardian will populate or query
+                  studentName: (await getDoc(doc(db, 'users', auth.currentUser.uid))).data()?.email?.split('@')[0] || 'Student',
+                  geofenceVerified: true,
+                  faceVerified: null,  // Pending face step
+                  zoneType: 'school',
+                  timestamp: serverTimestamp()
+                }, { merge: true });
+                appendLocationLog('📍 GEO VERIFIED - Guardian notified!');
+              } catch (e) {
+                appendLocationLog(`⚠️ Geo notif failed: ${e.message}`);
+              }
             }
-          } else if (schoolDist > schoolFence.radius + 20) {
             schoolInsideCount = 0;
             if (isInsideSchoolZone) {
               isInsideSchoolZone = false;
@@ -877,6 +894,10 @@ const homeDist = haversineDistance(lat, lng, homeFence.lat, homeFence.lng);
         guardianChildrenUnsubscribe = null;
       }
 
+      if (geofenceUnsubscribe) {
+  geofenceUnsubscribe();
+  geofenceUnsubscribe = null;
+      }
       stopFaceCamera();
       await signOut(auth);
     };
@@ -921,8 +942,47 @@ const homeDist = haversineDistance(lat, lng, homeFence.lat, homeFence.lng);
     loadGeofences();
     watchGuardianChildren();
     watchGuardianNotifications();
-    map.invalidateSize();
+
+    watchGeofenceVerification();
+map.invalidateSize();
   }, 100);
+}
+
+function watchGeofenceVerification() {
+  // Listen to verifications collection for this guardian's children
+  const q = query(
+    collection(db, 'verifications'),
+    where('guardianUid', '==', auth.currentUser.uid),
+    orderBy('timestamp', 'desc'),
+    limit(5)
+  );
+
+  if (geofenceUnsubscribe) geofenceUnsubscribe();
+  
+  geofenceUnsubscribe = onSnapshot(q, (snap) => {
+    snap.docChanges().forEach((change) => {
+      if (change.type === 'added' || change.type === 'modified') {
+        const data = change.doc.data();
+        const msg = data.geofenceVerified 
+          ? `📍 ${data.studentName || data.childUid?.slice(0,8)} entered ${data.zoneType}! Awaiting face scan...`
+          : `⚠️ ${data.studentName || 'Child'} geofence OK but face FAILED`;
+        
+        // Show in notifications section (reuse existing UI)
+        const notifsEl = document.getElementById('guardian-notifications');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${data.faceVerified === false ? 'status error' : 'status ok'}`;
+        entry.innerHTML = `<strong>${msg}</strong> [${data.timestamp?.toDate()?.toLocaleTimeString() || 'now'}]`;
+        notifsEl.insertBefore(entry, notifsEl.firstChild);
+        
+        // Optional: Play sound/vibrate
+        if (navigator.vibrate) navigator.vibrate(200);
+        
+        console.log('GEO NOTIFICATION!:', data);
+      }
+    });
+  }, (err) => {
+    console.error('Geofence listener error:', err);
+  });
 }
 
     onAuthStateChanged(auth, async (user) => {

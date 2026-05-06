@@ -1,4 +1,4 @@
-# app.py script.
+# app.py - Updated for Firestore sequential notifications
 from flask import Flask, request, jsonify
 import cv2
 import numpy as np
@@ -6,14 +6,27 @@ import base64
 import os
 from io import BytesIO
 from PIL import Image
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 app = Flask(__name__)
 
-# Use absolute paths relative to this script
+# 🔥 FIRESTORE INIT (Vercel env vars)
+if not firebase_admin._apps:
+    cred = credentials.Certificate({
+        "type": "service_account",
+        # Paste your service account JSON here OR use env vars
+        # Better: os.environ.get('FIREBASE_SERVICE_ACCOUNT')
+    })
+    firebase_admin.initialize_app(cred)
+db = firestore.client()
+
+# Paths (unchanged)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 recognizer_path = os.path.join(BASE_DIR, "recognizer.yml")
 cascade_path = os.path.join(BASE_DIR, "haarcascade_frontalface_default.xml")
 
+# Load models (unchanged)
 if not os.path.exists(recognizer_path):
     print(f"🚨 ERROR: {recognizer_path} missing!")
 else:
@@ -27,11 +40,9 @@ if not os.path.exists(cascade_path):
 else:
     face_cascade = cv2.CascadeClassifier(cascade_path)
 
-# Update these to match your training labels
-label_map = {
-    0: "G2G1g7oykpeDbJ8G1Dpf4t6IMF63",
-}
+label_map = {0: "G2G1g7oykpeDbJ8G1Dpf4t6IMF63"}  # Your trained UID
 
+# decode_image & detect_face (unchanged)
 def decode_image(image_data):
     if "," in image_data:
         image_data = image_data.split(",")[1]
@@ -63,27 +74,35 @@ def verify_face():
 
     face = detect_face(gray)
     if face is None:
-        return jsonify({"verified": False, "message": "No face detected"})
+        return jsonify({"verified": False, "message": "No face detected"}), 400
 
     face = cv2.resize(face, (200, 200))
     label, confidence = recognizer.predict(face)
 
     matched_uid = label_map.get(label)
     threshold = 80
+    verified = matched_uid == uid and confidence < threshold
 
-    if matched_uid == uid and confidence < threshold:
-        return jsonify({
-            "verified": True,
-            "label": label,
-            "confidence": confidence,
-            "message": "Face verified"
+    # 🔥 UPDATE FIRESTORE verifications doc (triggers guardian listener)
+    try:
+        verification_ref = db.collection('verifications').document(uid)
+        verification_ref.update({
+            'faceVerified': verified,
+            'confidence': float(confidence),
+            'timestamp': firestore.SERVER_TIMESTAMP,
+            'status': 'both' if verified else 'face_fail'
         })
+        print(f"✅ Firestore updated for {uid}: {verified}")
+    except Exception as e:
+        print(f"⚠️ Firestore update failed: {e}")
+        # Don't fail response—face verify still works
 
     return jsonify({
-        "verified": False,
+        "verified": verified,
         "label": label,
         "confidence": confidence,
-        "message": "Face not recognized"
+        "message": "Face verified" if verified else "Face not recognized"
     })
 
-app = app 
+if __name__ == "__main__":
+    app.run(debug=True)
