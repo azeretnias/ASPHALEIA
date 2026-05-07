@@ -1,13 +1,21 @@
 {
   "version": 2,
-  "builds": [
-    {"src": "api/app.py", "use": "@vercel/python"},
-    {"src": "**/*.html", "use": "@vercel/static"},
-    {"src": "**/*.json", "use": "@vercel/static"},
-    {"src": "**/*.js", "use": "@vercel/static"}
-  ],
-  "routes": [
-    {"src": "/api/(.*)", "dest": "api/app.py"},
-    {"src": "/(.*)", "dest": "index.html"}
+  "functions": {
+    "api/app.py": {
+      "runtime": "python3.12",
+      "memory": 1024,
+      "maxDuration": 30,
+      "maxSize": 50
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/app.py"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
