@@ -4,18 +4,11 @@
     "api/app.py": {
       "runtime": "python3.12",
       "memory": 1024,
-      "maxDuration": 30,
-      "maxSize": 50
+      "maxDuration": 30
     }
   },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/app.py"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/api/(.*)", "destination": "/api/app.py" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
