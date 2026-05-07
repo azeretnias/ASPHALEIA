@@ -1,4 +1,4 @@
-# app.py - Updated for Firestore sequential notifications
+# app.py - Production Ready
 from flask import Flask, request, jsonify
 import cv2
 import numpy as np
@@ -11,22 +11,20 @@ from firebase_admin import credentials, firestore
 
 app = Flask(__name__)
 
-# 🔥 FIRESTORE INIT (Vercel env vars)
+# 🔥 FIRESTORE ADMIN SDK (bypasses rules)
 if not firebase_admin._apps:
-    cred = credentials.Certificate({
-        "type": "service_account",
-        # Paste your service account JSON here OR use env vars
-        # Better: os.environ.get('FIREBASE_SERVICE_ACCOUNT')
-    })
+    # REPLACE with your actual JSON filename
+    cred = credentials.Certificate('./asphaleia-project-test-firebase-adminsdk-fbsvc-9e79127123.json')  # Upload file to Vercel
     firebase_admin.initialize_app(cred)
+
 db = firestore.client()
 
-# Paths (unchanged)
+# Model paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 recognizer_path = os.path.join(BASE_DIR, "recognizer.yml")
 cascade_path = os.path.join(BASE_DIR, "haarcascade_frontalface_default.xml")
 
-# Load models (unchanged)
+# Load models
 if not os.path.exists(recognizer_path):
     print(f"🚨 ERROR: {recognizer_path} missing!")
 else:
@@ -40,9 +38,8 @@ if not os.path.exists(cascade_path):
 else:
     face_cascade = cv2.CascadeClassifier(cascade_path)
 
-label_map = {0: "G2G1g7oykpeDbJ8G1Dpf4t6IMF63"}  # Your trained UID
+label_map = {0: "G2G1g7oykpeDbJ8G1Dpf4t6IMF63"}
 
-# decode_image & detect_face (unchanged)
 def decode_image(image_data):
     if "," in image_data:
         image_data = image_data.split(",")[1]
@@ -58,6 +55,17 @@ def detect_face(gray):
         return None
     x, y, w, h = faces[0]
     return gray[y:y + h, x:x + w]
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+@app.route("/", methods=["OPTIONS"])
+def preflight():
+    return "", 200
 
 @app.route("/api/verify-face", methods=["POST"])
 def verify_face():
@@ -83,10 +91,10 @@ def verify_face():
     threshold = 80
     verified = matched_uid == uid and confidence < threshold
 
-    # 🔥 UPDATE FIRESTORE verifications doc (triggers guardian listener)
+    # 🔥 UPDATE FIRESTORE (Admin SDK bypasses rules)
     try:
-        verification_ref = db.collection('verifications').document(uid)
-        verification_ref.update({
+        doc_ref = db.collection('verifications').document(uid)
+        doc_ref.update({
             'faceVerified': verified,
             'confidence': float(confidence),
             'timestamp': firestore.SERVER_TIMESTAMP,
@@ -95,7 +103,6 @@ def verify_face():
         print(f"✅ Firestore updated for {uid}: {verified}")
     except Exception as e:
         print(f"⚠️ Firestore update failed: {e}")
-        # Don't fail response—face verify still works
 
     return jsonify({
         "verified": verified,
