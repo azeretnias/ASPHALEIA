@@ -28,15 +28,26 @@ except Exception as e:
     print(f"Firebase failed: {e}")
 
 # Models (safe load)
+# Models (safe load with contrib check)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 recognizer_path = os.path.join(BASE_DIR, "recognizer.yml")
 cascade_path = os.path.join(BASE_DIR, "haarcascade_frontalface_default.xml")
 
-if os.path.exists(recognizer_path):
+try:
     recognizer = cv2.face.LBPHFaceRecognizer_create()
-    recognizer.read(recognizer_path)
-if os.path.exists(cascade_path):
+    if os.path.exists(recognizer_path):
+        recognizer.read(recognizer_path)
+        print("Recognizer loaded")
+except AttributeError:
+    recognizer = None
+    print("cv2.face missing - using contrib-python-headless")
+
+try:
     face_cascade = cv2.CascadeClassifier(cascade_path)
+    print("Cascade loaded")
+except:
+    face_cascade = None
+    print("Cascade failed")
 
 # ... decode_image, detect_face unchanged ...
 
