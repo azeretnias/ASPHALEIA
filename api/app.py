@@ -3,6 +3,7 @@ from flask_cors import CORS
 import cv2
 import numpy as np
 import base64
+import json
 import os
 from io import BytesIO
 from PIL import Image
@@ -11,11 +12,21 @@ from firebase_admin import credentials, firestore
 
 app = Flask(__name__)
 CORS(app)
+
 # Globals - safe defaults
 recognizer = None
 face_cascade = None
 db = None
-label_map = {0: "G2G1g7oykpeDbJ8G1Dpf4t6IMF63"}
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+label_map_path = os.path.join(BASE_DIR, "labels.json")
+try:
+    with open(label_map_path, 'r') as f:
+        label_map = {int(k): v for k, v in json.load(f).items()}
+    print(f"Loaded label map: {label_map}")
+except Exception as e:
+    print(f"Failed to load label map: {e}, using default")
+    label_map = {0: "G2G1g7oykpeDbJ8G1Dpf4t6IMF63"}
 
 # Firebase (graceful)
 cred_path = os.environ.get('FIREBASE_JSON_PATH', './asphaleia-project-test-firebase-adminsdk-fbsvc-9e79127123.json')
@@ -133,11 +144,11 @@ def verify_face():
     if db:
         try:
             doc_ref = db.collection('verifications').document(uid)
-            doc_ref.update({
+            doc_ref.set({
                 'faceVerified': verified,
                 'confidence': float(confidence),
                 'timestamp': firestore.SERVER_TIMESTAMP
-            })
+            }, merge=True)
         except Exception as e:
             print(f"Firestore error: {e}")
 
