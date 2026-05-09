@@ -519,9 +519,9 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
                   zoneType: 'school',
                   timestamp: serverTimestamp()
                 }, { merge: true });
-                appendLocationLog('📍 GEO VERIFIED - Guardian notified!');
+                appendLocationLog('GEO VERIFIED - Guardian notified!');
               } catch (e) {
-                appendLocationLog(`⚠️ Geo notif failed: ${e.message}`);
+                appendLocationLog(`Geo notif failed: ${e.message}`);
               }
             }
           } else {
@@ -549,9 +549,9 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
                   zoneType: 'home',
                   timestamp: serverTimestamp()
                 }, { merge: true });
-                appendLocationLog('🏠 HOME GEO VERIFIED - Guardian notified!');
+                appendLocationLog('HOME GEO VERIFIED - Guardian notified!');
               } catch (e) {
-                appendLocationLog(`⚠️ Home geo notif failed: ${e.message}`);
+                appendLocationLog(`Home geo notif failed: ${e.message}`);
               }
             }
           } else if (homeDist > homeFence.radius + 20) {
