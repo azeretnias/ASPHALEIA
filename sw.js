@@ -1,15 +1,8 @@
-const CACHE_NAME = 'asphaleia-phase3-v1';
+const CACHE_NAME = 'asphaleia-phase3-v2';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json',
-  // Leaflet CDN (critical for map)
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-  // OpenStreetMap tiles (basic caching)
-  'https://a.tile.openstreetmap.org/14/16384/8192.png',
-  'https://b.tile.openstreetmap.org/14/16384/8192.png', 
-  'https://c.tile.openstreetmap.org/14/16384/8192.png'
+  '/manifest.json'
 ];
 
 // Install: Cache core assets
@@ -48,20 +41,9 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // Leaflet tiles: Cache-first (fast map)
+  // Leaflet tiles: do not cache OSM tiles in the service worker.
   if (event.request.url.includes('tile.openstreetmap.org')) {
-    event.respondWith(
-      caches.match(event.request).then(response => {
-        return response || fetch(event.request).then(fetchResponse => {
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, fetchResponse.clone());
-          });
-          return fetchResponse;
-        });
-      }).catch(() => {
-        return caches.match('/index.html');
-      })
-    );
+    event.respondWith(fetch(event.request));
     return;
   }
   
