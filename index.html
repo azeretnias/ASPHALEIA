@@ -1164,8 +1164,7 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
     const q = query(
       collection(db, 'verifications'),
       where('childUid', '==', childUid),
-      orderBy('timestamp', 'desc'),
-      limit(5)
+      limit(20)
     );
 
     verificationListeners[childUid] = onSnapshot(q, (snap) => {
