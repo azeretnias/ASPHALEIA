@@ -1246,11 +1246,16 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
       window.addEventListener('load', async () => {
         try {
           const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(reg => reg.unregister()));
-          const reg = await navigator.serviceWorker.register('/sw.js');
-          console.log('✅ Service worker registered:', reg.scope);
+          if (regs.length > 0) {
+            await Promise.all(regs.map(reg => reg.unregister()));
+            if (!sessionStorage.getItem('sw-unregistered')) {
+              sessionStorage.setItem('sw-unregistered', '1');
+              window.location.reload();
+              return;
+            }
+          }
         } catch (err) {
-          console.warn('❌ Service worker registration failed:', err);
+          console.warn('❌ Service worker cleanup failed:', err);
         }
       });
     }
