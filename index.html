@@ -161,9 +161,8 @@
     });
 
     // 2.2 ALL GLOBAL STATES
-    let map, childMarker, customGeofences = {}, geofenceLayers = [];
+    let map, customGeofences = {}, geofenceLayers = [];
     let locationPermissionGranted = false, linkedChildren = [];
-    let trackingInterval = null;
     let commandUnsubscribe = null;
     let guardianChildrenUnsubscribe = null;
     let childMarkers = {};
@@ -182,8 +181,6 @@
     let schoolInsideCount = 0;
     let homeInsideCount = 0;
     let verificationPending = false;
-    let lastState = { school: false, home: false };
-    let geofenceUnsubscribe = null;
     let guardianNotificationsUnsubscribe = null;
 
     const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://asphaleia-4vtc.vercel.app';
@@ -303,6 +300,7 @@
       guardianChildrenUnsubscribe = onSnapshot(guardianDoc, async (snap) => {
         try {
           if (!snap.exists()) {
+            clearGuardianChildState();
             document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked.</div>';
             document.getElementById('linked-children-section').className = 'status pending';
             return;
@@ -311,6 +309,7 @@
           linkedChildren = Array.isArray(snap.data().children) ? snap.data().children : [];
 
           if (linkedChildren.length === 0) {
+            clearGuardianChildState();
             document.getElementById('linked-children').innerHTML = '<div style="color:#666;">No children linked.</div>';
             document.getElementById('linked-children-section').className = 'status pending';
             return;
@@ -435,6 +434,14 @@
       });
     }
 
+    function clearGuardianChildState() {
+      Object.values(childListeners).forEach(unsub => unsub && unsub());
+      childListeners = {};
+      Object.values(childMarkers).forEach(marker => map?.removeLayer(marker));
+      childMarkers = {};
+      linkedChildren = [];
+    }
+
     window.sendTrackingCommand = async (childUid, command) => {
       try {
         await setDoc(doc(db, 'trackingCommands', childUid), {
@@ -477,8 +484,15 @@
 
       const saved = localStorage.getItem(`geofences_${auth.currentUser.uid}`);
       if (saved) {
-        customGeofences = JSON.parse(saved);
-      } else {
+        try {
+          customGeofences = JSON.parse(saved);
+        } catch (err) {
+          console.warn('Invalid saved geofences, resetting to defaults.', err);
+          customGeofences = null;
+        }
+      }
+
+      if (!customGeofences) {
         customGeofences = {
           school: { lat: 25.2854, lng: 51.5310, radius: 75, name: 'School', type: 'school' },
           home: { lat: 25.3548, lng: 51.1839, radius: 75, name: 'Home', type: 'home' }
@@ -726,24 +740,28 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
     }
 
     async function verifyFaceWithServer(imageData) {
-  try {
-    const controller = new AbortController(); // Add timeout
-    setTimeout(() => controller.abort(), 10000);
-    const response = await fetch(`${API_BASE}/api/verify-face`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: imageData, uid: auth.currentUser?.uid }),
-      signal: controller.signal
-    });
-    if (!response.ok) throw new Error(`Server error: ${response.status}`);
-    const result = await response.json();
-    if (result.error) throw new Error(result.error);
-    return result;
-  } catch (err) {
-    if (err.name === 'AbortError') throw new Error('Verification timeout - retry');
-    throw err;
-  }
-}
+      let timeoutId;
+      try {
+        const controller = new AbortController(); // Add timeout
+        timeoutId = setTimeout(() => controller.abort(), 10000);
+        const response = await fetch(`${API_BASE}/api/verify-face`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: imageData, uid: auth.currentUser?.uid }),
+          signal: controller.signal
+        });
+
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        const result = await response.json();
+        if (result.error) throw new Error(result.error);
+        return result;
+      } catch (err) {
+        if (err.name === 'AbortError') throw new Error('Verification timeout - retry');
+        throw err;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
 
     window.startFaceVerify = async () => {
       await startFaceCamera();
@@ -843,6 +861,13 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
     }
 
     window.requestLocationPermission = () => {
+      if (!navigator.geolocation) {
+        alert('❌ Geolocation is not supported by this browser.');
+        gpsIndicatorEl.className = 'gps-indicator gps-denied';
+        gpsTextEl.innerHTML = '❌ GPS not supported';
+        return;
+      }
+
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           locationPermissionGranted = true;
@@ -915,20 +940,34 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
     };
 
     window.register = async () => {
-      const email = document.getElementById('email').value;
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const role = document.getElementById('role').value;
-      const userCred = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(db, 'users', userCred.user.uid), { email, role });
-      if (role === 'guardian') {
-        await setDoc(doc(db, 'guardianChildren', userCred.user.uid), { children: [] }, { merge: true });
+
+      if (!email || !password) {
+        return alert('Enter both email and password.');
       }
-      alert('✅ Registered!');
+
+      try {
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, 'users', userCred.user.uid), { email, role });
+        if (role === 'guardian') {
+          await setDoc(doc(db, 'guardianChildren', userCred.user.uid), { children: [] }, { merge: true });
+        }
+        alert('✅ Registered!');
+      } catch (error) {
+        console.error('❌ REGISTER ERROR:', error.code, error.message);
+        alert(`❌ Registration failed: ${error.message}`);
+      }
     };
 
     window.login = async () => {
-      const email = document.getElementById('email').value;
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        return alert('Enter both email and password.');
+      }
 
       try {
         console.log('🔐 LOGIN ATTEMPT:', email);
@@ -979,14 +1018,12 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
         guardianNotificationsUnsubscribe();
         guardianNotificationsUnsubscribe = null;
       }
-      if (geofenceUnsubscribe) {
-        geofenceUnsubscribe();
-        geofenceUnsubscribe = null;
-      }
       if (commandUnsubscribe) {
         commandUnsubscribe();
         commandUnsubscribe = null;
       }
+      document.getElementById('notifications-section').classList.add('hidden');
+      linkedChildren = [];
       
       // Clean up map and markers
       Object.values(childMarkers).forEach(marker => map?.removeLayer(marker));
@@ -994,10 +1031,6 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
       childListeners = {};
 
       // Clear intervals and watches
-      if (trackingInterval) {
-        clearInterval(trackingInterval);
-        trackingInterval = null;
-      }
       if (watchId) {
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
@@ -1047,6 +1080,7 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
         initMap();
         loadGeofences();
         watchGuardianChildren();
+        watchGuardianNotifications();
         watchGeofenceVerification();
 
         map.invalidateSize();
@@ -1054,17 +1088,13 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
     }
 
     function watchGeofenceVerification() {
-  if (geofenceUnsubscribe) {
-    geofenceUnsubscribe();
-    geofenceUnsubscribe = null;
-  }
-  Object.values(verificationListeners).forEach(unsub => unsub && unsub());
-  verificationListeners = {};
+      Object.values(verificationListeners).forEach(unsub => unsub && unsub());
+      verificationListeners = {};
 
-  if (!Array.isArray(linkedChildren) || linkedChildren.length === 0) {
-    console.log('watchGeofenceVerification waiting for linked children');
-    return;
-  }
+      if (!Array.isArray(linkedChildren) || linkedChildren.length === 0) {
+        console.log('watchGeofenceVerification waiting for linked children');
+        return;
+      }
 
   linkedChildren.forEach((childUid) => {
     const q = query(
@@ -1106,12 +1136,19 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
     }, (err) => {
       console.error('Geofence listener error:', err);
     });
-    }
+  });
+}
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userSnap = await getDoc(doc(db, 'users', user.uid));
         const role = userSnap.data()?.role;
+
+        if (role !== 'guardian' && role !== 'student') {
+          alert('Unable to determine account role. Please contact support.');
+          await signOut(auth);
+          return;
+        }
 
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById(role === 'guardian' ? 'guardian-dashboard' : 'student-dashboard').classList.remove('hidden');
@@ -1126,11 +1163,6 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
         document.querySelectorAll('[id$="-dashboard"]').forEach(el => el.classList.add('hidden'));
         document.getElementById('auth-screen').classList.remove('hidden');
 
-        if (trackingInterval) {
-          clearInterval(trackingInterval);
-          trackingInterval = null;
-        }
-
         if (commandUnsubscribe) {
           commandUnsubscribe();
           commandUnsubscribe = null;
@@ -1140,6 +1172,9 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
           guardianChildrenUnsubscribe();
           guardianChildrenUnsubscribe = null;
         }
+
+        document.getElementById('notifications-section').classList.add('hidden');
+        clearGuardianChildState();
       }
     });
 
