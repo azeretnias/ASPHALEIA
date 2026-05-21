@@ -1245,6 +1245,8 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', async () => {
         try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(reg => reg.unregister()));
           const reg = await navigator.serviceWorker.register('/sw.js');
           console.log('✅ Service worker registered:', reg.scope);
         } catch (err) {

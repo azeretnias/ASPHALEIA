@@ -31,6 +31,12 @@ self.addEventListener('activate', event => {
 
 // Fetch: Network-first → Cache → Offline page
 self.addEventListener('fetch', event => {
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== self.location.origin) {
+    // Do not intercept external requests to avoid CORS issues.
+    return;
+  }
+
   // HTML: Network-first (always fresh)
   if (event.request.destination === 'document') {
     event.respondWith(
@@ -40,13 +46,7 @@ self.addEventListener('fetch', event => {
     );
     return;
   }
-  
-  // Leaflet tiles: do not cache OSM tiles in the service worker.
-  if (event.request.url.includes('tile.openstreetmap.org')) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
-  
+
   // Everything else: Cache-first
   event.respondWith(
     caches.match(event.request).then(response => {
