@@ -656,7 +656,7 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
             });
             appendLocationLog('💾 Saved to Firebase');
           } catch (e) {
-            appendLocationLog('❌ Save failed');
+            appendLocationLog(`❌ Save failed: ${e.message}`);
           }
         },
         async (err) => {
@@ -1248,6 +1248,7 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
           const regs = await navigator.serviceWorker.getRegistrations();
           if (regs.length > 0) {
             await Promise.all(regs.map(reg => reg.unregister()));
+            console.log('✅ Service workers unregistered');
             if (!sessionStorage.getItem('sw-unregistered')) {
               sessionStorage.setItem('sw-unregistered', '1');
               window.location.reload();
