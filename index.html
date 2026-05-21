@@ -168,6 +168,7 @@
     let guardianChildrenUnsubscribe = null;
     let childMarkers = {};
     let childListeners = {};
+    let verificationListeners = {};
     let lastLat = null;
     let lastLng = null;
     let watchId = null;
@@ -1053,52 +1054,58 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
     }
 
     function watchGeofenceVerification() {
-      if (geofenceUnsubscribe) geofenceUnsubscribe();
-      
-      if (!Array.isArray(linkedChildren) || linkedChildren.length === 0) {
-        console.log('watchGeofenceVerification waiting for linked children');
-        return;
-      }
+  if (geofenceUnsubscribe) {
+    geofenceUnsubscribe();
+    geofenceUnsubscribe = null;
+  }
+  Object.values(verificationListeners).forEach(unsub => unsub && unsub());
+  verificationListeners = {};
 
-      const q = query(
-        collection(db, 'verifications'),
-        where('childUid', 'in', linkedChildren),
-        orderBy('timestamp', 'desc'),
-        limit(10)
-      );
+  if (!Array.isArray(linkedChildren) || linkedChildren.length === 0) {
+    console.log('watchGeofenceVerification waiting for linked children');
+    return;
+  }
 
-      geofenceUnsubscribe = onSnapshot(q, (snap) => {
-        snap.docChanges().forEach((change) => {
-          if (change.type !== 'added' && change.type !== 'modified') return;
+  linkedChildren.forEach((childUid) => {
+    const q = query(
+      collection(db, 'verifications'),
+      where('childUid', '==', childUid),
+      orderBy('timestamp', 'desc'),
+      limit(5)
+    );
 
-          const data = change.doc.data();
-          let msg = '';
-          let type = 'info';
+    verificationListeners[childUid] = onSnapshot(q, (snap) => {
+      snap.docChanges().forEach((change) => {
+        if (change.type !== 'added' && change.type !== 'modified') return;
 
-          if (data.failureType === 'gps' || data.event === 'gps_failure') {
-            msg = `⚠️ ${data.studentName || 'Child'} GPS failure: ${data.message || 'GPS unavailable'}`;
-            type = 'error';
-          } else if (data.event === 'face_failed' || data.event === 'face_capture_error') {
-            msg = `⚠️ ${data.studentName || 'Child'} face verification failed: ${data.message || 'Not recognized'}`;
-            type = 'error';
-          } else if (data.event === 'face_verified') {
-            msg = `✅ ${data.studentName || 'Child'} verified ${data.zoneType || 'zone'} successfully`;
-            type = 'ok';
-          } else if (data.geofenceVerified) {
-            msg = `📍 ${data.studentName || data.childUid?.slice(0,8)} entered ${data.zoneType || 'zone'} — awaiting face scan`;
-            type = 'info';
-          } else {
-            msg = `ℹ️ ${data.studentName || 'Child'} status update`;
-          }
+        const data = change.doc.data();
+        let msg = '';
+        let type = 'info';
 
-          addGuardianAlert(msg, type === 'error' ? 'error' : 'info');
+        if (data.failureType === 'gps' || data.event === 'gps_failure') {
+          msg = `⚠️ ${data.studentName || 'Child'} GPS failure: ${data.message || 'GPS unavailable'}`;
+          type = 'error';
+        } else if (data.event === 'face_failed' || data.event === 'face_capture_error') {
+          msg = `⚠️ ${data.studentName || 'Child'} face verification failed: ${data.message || 'Not recognized'}`;
+          type = 'error';
+        } else if (data.event === 'face_verified') {
+          msg = `✅ ${data.studentName || 'Child'} verified ${data.zoneType || 'zone'} successfully`;
+          type = 'ok';
+        } else if (data.geofenceVerified) {
+          msg = `📍 ${data.studentName || data.childUid?.slice(0,8)} entered ${data.zoneType || 'zone'} — awaiting face scan`;
+          type = 'info';
+        } else {
+          msg = `ℹ️ ${data.studentName || 'Child'} status update`;
+        }
 
-          if (navigator.vibrate) navigator.vibrate(200);
-          console.log('GEO NOTIFICATION!:', data);
-        });
-      }, (err) => {
-        console.error('Geofence listener error:', err);
+        addGuardianAlert(msg, type === 'error' ? 'error' : 'info');
+
+        if (navigator.vibrate) navigator.vibrate(200);
+        console.log('GEO NOTIFICATION!:', data);
       });
+    }, (err) => {
+      console.error('Geofence listener error:', err);
+    });
     }
 
     onAuthStateChanged(auth, async (user) => {
@@ -1139,7 +1146,7 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', async () => {
         try {
-          const reg = await navigator.serviceWorker.register('/sw,js');
+          const reg = await navigator.serviceWorker.register('/sw.js');
           console.log('✅ Service worker registered:', reg.scope);
         } catch (err) {
           console.warn('❌ Service worker registration failed:', err);

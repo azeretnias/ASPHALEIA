@@ -20,8 +20,8 @@
       "dest": "api/app.py"
     },
     {
-      "src": "/sw,js",
-      "dest": "/sw,js"
+      "src": "/sw.js",
+      "dest": "/sw.js"
     },
     {
       "src": "/manifest.json",
