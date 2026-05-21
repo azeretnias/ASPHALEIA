@@ -475,24 +475,36 @@
       });
     }
 
-    function loadGeofences() {
+    async function loadGeofences() {
       if (!auth.currentUser) {
         customGeofences = {};
         renderGeofenceList();
         return;
       }
 
-      const saved = localStorage.getItem(`geofences_${auth.currentUser.uid}`);
-      if (saved) {
-        try {
-          customGeofences = JSON.parse(saved);
-        } catch (err) {
-          console.warn('Invalid saved geofences, resetting to defaults.', err);
-          customGeofences = null;
+      const guardianRef = doc(db, 'guardianChildren', auth.currentUser.uid);
+      try {
+        const guardianSnap = await getDoc(guardianRef);
+        if (guardianSnap.exists() && guardianSnap.data()?.geofences) {
+          customGeofences = guardianSnap.data().geofences;
+        }
+      } catch (err) {
+        console.warn('Failed to load guardian geofences from Firestore:', err);
+      }
+
+      if (!customGeofences || Object.keys(customGeofences).length === 0) {
+        const saved = localStorage.getItem(`geofences_${auth.currentUser.uid}`);
+        if (saved) {
+          try {
+            customGeofences = JSON.parse(saved);
+          } catch (err) {
+            console.warn('Invalid saved geofences, resetting to defaults.', err);
+            customGeofences = null;
+          }
         }
       }
 
-      if (!customGeofences) {
+      if (!customGeofences || Object.keys(customGeofences).length === 0) {
         customGeofences = {
           school: { lat: 25.2854, lng: 51.5310, radius: 75, name: 'School', type: 'school' },
           home: { lat: 25.3548, lng: 51.1839, radius: 75, name: 'Home', type: 'home' }
@@ -529,6 +541,34 @@
             <button onclick="deleteGeofence('${key}')" style="background:#ff4444;padding:6px 12px;">🗑️</button>
           </div>
         `).join('') || '<div style="color:#666;">No geofences saved</div>';
+    }
+
+    async function loadStudentGeofences() {
+      if (!auth.currentUser) return;
+
+      const q = query(
+        collection(db, 'guardianChildren'),
+        where('children', 'array-contains', auth.currentUser.uid),
+        limit(1)
+      );
+
+      try {
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const data = snap.docs[0].data();
+          if (data.geofences && typeof data.geofences === 'object') {
+            customGeofences = data.geofences;
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load student geofences from guardian record:', err);
+      }
+
+      customGeofences = {
+        school: { lat: 25.2854, lng: 51.5310, radius: 75, name: 'School', type: 'school' },
+        home: { lat: 25.3548, lng: 51.1839, radius: 75, name: 'Home', type: 'home' }
+      };
     }
 
     async function startContinuousTracking() {
@@ -908,7 +948,7 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
       );
     };
 
-    window.saveCustomGeofence = () => {
+    window.saveCustomGeofence = async () => {
       const type = document.getElementById('geofence-type').value;
       const lat = parseFloat(document.getElementById('geo-lat').value);
       const lng = parseFloat(document.getElementById('geo-lng').value);
@@ -926,15 +966,39 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
         type
       };
 
-      localStorage.setItem(`geofences_${auth.currentUser?.uid || 'default'}`, JSON.stringify(customGeofences));
+      const key = `geofences_${auth.currentUser?.uid || 'default'}`;
+      localStorage.setItem(key, JSON.stringify(customGeofences));
+
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'guardianChildren', auth.currentUser.uid), {
+            geofences: customGeofences
+          }, { merge: true });
+        } catch (err) {
+          console.warn('Failed to save geofences to Firestore:', err);
+        }
+      }
+
       renderGeofencesOnMap();
       renderGeofenceList();
       alert(`✅ ${type.toUpperCase()} saved!`);
     };
 
-    window.deleteGeofence = (type) => {
+    window.deleteGeofence = async (type) => {
       delete customGeofences[type];
-      localStorage.setItem(`geofences_${auth.currentUser?.uid || 'default'}`, JSON.stringify(customGeofences));
+      const key = `geofences_${auth.currentUser?.uid || 'default'}`;
+      localStorage.setItem(key, JSON.stringify(customGeofences));
+
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'guardianChildren', auth.currentUser.uid), {
+            geofences: customGeofences
+          }, { merge: true });
+        } catch (err) {
+          console.warn('Failed to save geofences to Firestore:', err);
+        }
+      }
+
       renderGeofencesOnMap();
       renderGeofenceList();
     };
@@ -1156,6 +1220,7 @@ const schoolDist = haversineDistance(lat, lng, schoolFence.lat, schoolFence.lng)
         if (role === 'guardian') {
           watchGuardianDashboard();
         } else if (role === 'student') {
+          await loadStudentGeofences();
           watchStudentTrackingCommands(user.uid);
           appendLocationLog('👨‍🎓 Ready for guardian commands');
         }
